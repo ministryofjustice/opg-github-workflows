@@ -1,2 +1,5 @@
-# opg-template-repository
-Github "template" repository, from which to create new OPG Repositories: Managed by opg-org-infra &amp; Terraform
+# opg-github-workflows
+
+Managed by opg-org-infra &amp; Terraform
+
+A repo to share common github workflows that we can re-use.
