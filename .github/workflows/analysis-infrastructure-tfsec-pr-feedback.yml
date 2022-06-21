@@ -1,0 +1,40 @@
+name: "[Analysis - Infrastructure] TFSec Pull Request Feedback"
+
+on:
+  workflow_call:
+    inputs:
+      terraform_path:
+        description: 'String containing a JSON formated list of relative directory paths where terraform files would exist.'
+        default: '["terraform/account", "terraform/environment"]'
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  checks: read
+  contents: none
+  deployments: none
+  issues: none
+  packages: none
+  pull-requests: write
+  repository-projects: none
+  security-events: none
+  statuses: none
+
+jobs:
+  tfsec:
+    name: TFSec Static analysis
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        terraform_path: ${{ fromJSON(inputs.terraform_path) }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: tfsec with pr comments
+        uses: tfsec/tfsec-pr-commenter-action@v1.2.0
+        with:
+          working_directory: ${{ matrix.terraform_path }}
+          github_token: ${{secrets.GITHUB_TOKEN}}
