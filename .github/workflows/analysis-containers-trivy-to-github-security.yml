@@ -35,19 +35,21 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       indexed: ${{ steps.add_index.outputs.indexed }}
-    id: add_index
-    run: |
-      index_added=""
-      i=0
-      while read row; do
-          object="{\"i\":\"${i}\",\"data\": ${row}}"
-          index_added="${object_array}${object},"
-          ((i=i+1))
-      done << EOT
-      $(jq -c '.[]' <<< ${{ inputs.tagged_images }}
-      EOT
+    steps:
+      - id: add_index
+        name: Add index
+        run: |
+          index_added=""
+          i=0
+          while read row; do
+              object="{\"i\":\"${i}\",\"data\": ${row}}"
+              index_added="${object_array}${object},"
+              ((i=i+1))
+          done << EOT
+          $(jq -c '.[]' <<< ${{ inputs.tagged_images }}
+          EOT
 
-      echo "::set-output name=indexed::${index_added}\n"
+          echo "::set-output name=indexed::${index_added}\n"
 
   trivy_scan_and_upload_tagged_images:
     name: 'Run trivy against the tagged_images list and upload results'
