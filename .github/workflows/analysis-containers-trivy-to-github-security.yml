@@ -39,7 +39,7 @@ jobs:
         tagged_image: ${{ fromJSON(inputs.tagged_images) }}
     steps:
       - name: Scan
-        uses: aquasecurity/trivy-action@0.3.0
+        uses: aquasecurity/trivy-action@0.4.1
         with:
           image-ref: ${{ matrix.tagged_image }}
           severity: ${{ inputs.severity_to_flag }}
