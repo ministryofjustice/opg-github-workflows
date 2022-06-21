@@ -15,8 +15,6 @@ on:
         description: 'When true, GitHub will cancel all in-progress and queued jobs in the matrix if any job in the matrix fails'
         type: boolean
         default: false
-
-
     secrets:
       source_github_token:
           required: true
