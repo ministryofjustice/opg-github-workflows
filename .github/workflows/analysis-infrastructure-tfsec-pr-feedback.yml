@@ -7,11 +7,15 @@ on:
         description: 'String containing a JSON formated list of relative directory paths where terraform files would exist.'
         type: string
         default: '["terraform/account", "terraform/environment"]'
-
       soft_fail:
         description: 'Set to true to to comment silently without breaking the build'
         type: boolean
         default: false
+      job_strategy_fail_fast:
+        description: 'When true, GitHub will cancel all in-progress and queued jobs in the matrix if any job in the matrix fails'
+        type: boolean
+        default: false
+
 
     secrets:
       source_github_token:
@@ -34,6 +38,7 @@ jobs:
     name: TFSec static analysis pull request feedback
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: ${{ inputs.job_strategy_fail_fast }}
       matrix:
         terraform_path: ${{ fromJSON(inputs.terraform_path) }}
     steps:
