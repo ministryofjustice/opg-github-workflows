@@ -1,0 +1,53 @@
+# Presumes the docker image has alreadu been built and is accessible
+name: "[Analysis - Containers] Trivy Scan Docker Containers To Github Security"
+
+on:
+  workflow_call:
+    inputs:
+      tagged_images:
+        description: 'String containing a JSON formated list of images with their tag to scan. For example: ["api:latest", "front:latest"]'
+        type: string
+        required: true
+      severity_to_flag:
+        description: 'Set the severity level of issues to be flagged'
+        type: string
+        default: "HIGH,CRITICAL"
+      job_strategy_fail_fast:
+        description: 'When true, GitHub will cancel all in-progress and queued jobs in the matrix if any job in the matrix fails'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: none
+  actions: none
+  checks: none
+  deployments: none
+  issues: none
+  packages: none
+  repository-projects: none
+  statuses: none
+
+jobs:
+  trivy_scan_and_upload_tagged_images:
+    name: 'Run trivy against the tagged_images list and upload results'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: ${{ inputs.job_strategy_fail_fast }}
+      matrix:
+        tagged_image: ${{ fromJSON(inputs.tagged_images) }}
+    steps:
+      - name: Scan
+        uses: aquasecurity/trivy-action@0.3.0
+        with:
+          image-ref: ${{ matrix.tagged_image }}
+          severity: ${{ inputs.severity_to_flag }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      - name: Upload
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+      - name: Remove result file
+        run: rm -f trivy-results.sarif
