@@ -5,9 +5,10 @@ on:
     inputs:
       terraform_path:
         description: 'String containing a JSON formated list of relative directory paths where terraform files would exist.'
-        default: '["terraform/account", "terraform/environment"]'
         required: true
         type: string
+        default: '["terraform/account", "terraform/environment"]'
+
       soft_fail:
         description: 'Set to true to to comment silently without breaking the build'
         required: true
@@ -15,7 +16,7 @@ on:
         default: false
 
     secrets:
-      github_token:
+      source_github_token:
           required: true
 
 permissions:
@@ -47,4 +48,4 @@ jobs:
         with:
           soft_fail_commenter: ${{ inputs.soft_fail }}
           working_directory: ${{ matrix.terraform_path }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.source_github_token }}
