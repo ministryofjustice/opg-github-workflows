@@ -8,6 +8,15 @@ on:
         default: '["terraform/account", "terraform/environment"]'
         required: true
         type: string
+      soft_fail:
+        description: 'Set to true to to comment silently without breaking the build'
+        required: true
+        type: boolean
+        default: false
+
+    secrets:
+      github_token:
+          required: true
 
 permissions:
   actions: read
@@ -22,8 +31,8 @@ permissions:
   statuses: none
 
 jobs:
-  tfsec:
-    name: TFSec Static analysis
+  tfsec_pr_commenter:
+    name: TFSec static analysis pull request feedback
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,7 +43,8 @@ jobs:
         with:
           fetch-depth: 2
       - name: tfsec with pr comments
-        uses: tfsec/tfsec-pr-commenter-action@v1.2.0
+        uses: aquasecurity/tfsec-pr-commenter-action@v1.2.0
         with:
+          soft_fail_commenter: ${{ inputs.soft_fail }}
           working_directory: ${{ matrix.terraform_path }}
-          github_token: ${{secrets.GITHUB_TOKEN}}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
