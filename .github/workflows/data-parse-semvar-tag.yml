@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Bump version
         id: bump_version
-        uses: anothrNick/github-tag-action@1.36.0
+        uses: anothrNick/github-tag-action@1.39.0
         env:
           GITHUB_TOKEN: ${{ secrets.source_github_token }}
           INITIAL_VERSION: 0.0.0
