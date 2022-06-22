@@ -54,11 +54,11 @@ jobs:
           image-ref: ${{ matrix.tagged_image.data }}
           severity: ${{ inputs.severity_to_flag }}
           format: 'sarif'
-          output: 'trivy-results-${{ matrix.tagged_image.i }}.sarif'
+          output: ${{ format('trivy-results-{0}.sarif', matrix.tagged_image.i) }}
       - name: Upload
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
-          sarif_file: 'trivy-results-${{ matrix.tagged_image.i }}.sarif'
+          sarif_file: ${{ format('trivy-results-{0}.sarif', matrix.tagged_image.i) }}
       - name: Remove result file
         run: rm -f trivy-results.sarif
