@@ -45,7 +45,7 @@ jobs:
             parsed_branch="main"
           else
             raw_branch=${{ github.head_ref }}
-            parsed_branch=$( echo "${branch}" | tr -cd '[:alnum:]')
+            parsed_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
           fi
           echo "EVENT: ${GITHUB_EVENT_NAME}"
           echo "REF: ${{ github.head_ref }}"
