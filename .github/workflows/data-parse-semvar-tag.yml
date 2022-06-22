@@ -1,0 +1,36 @@
+# Return a semvar style tag based on the repos existing tags
+name: "[Data - Parse] Semvar Tag"
+
+
+on:
+  workflow_call:
+    outputs:
+      version_tag:
+        description: "Version Tag"
+        value: ${{ jobs.create_tags.outputs.version_tag }}
+    inputs:
+      branch_name:
+        type: string
+        description: "Current Github branch name"
+        required: true
+    secrets:
+      source_github_token:
+          required: true
+
+jobs:
+  create_tags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Bump version
+        id: bump_version
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.source_github_token }}
+          INITIAL_VERSION: 0.0.0
+          DEFAULT_BUMP: minor
+          PRERELEASE_SUFFIX: ${{ inputs.branch_name }}
+          RELEASE_BRANCHES: main
+          WITH_V: true
+    outputs:
+      version_tag: ${{ steps.bump_version.outputs.tag }}
