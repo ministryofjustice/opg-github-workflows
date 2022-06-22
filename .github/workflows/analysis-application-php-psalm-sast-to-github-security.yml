@@ -1,0 +1,72 @@
+name: "[Analysis - Application] PHP Psalm SAST To Github Security"
+
+on:
+  workflow_call:
+    inputs:
+      directories:
+        description: 'String containing a JSON formated list of directories to scan. Exclude the trailing slash. For example: ["./service-api", "./service-front"]'
+        type: string
+        required: true
+      php_version:
+        description: 'PHP version to use. Defaults to 8.1'
+        type: string
+        default: '8.1'
+      composer_command:
+        description: 'Composer command to run to install requirements'
+        type: string
+        default: 'composer install --prefer-dist --optimize-autoloader --no-suggest --no-interaction --no-scripts'
+      job_strategy_fail_fast:
+        description: 'When true, GitHub will cancel all in-progress and queued jobs in the matrix if any job in the matrix fails'
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  deployments: read
+  issues: read
+  packages: read
+  pull-requests: read
+  repository-projects: read
+  security-events: read
+  statuses: read
+
+jobs:
+
+  analysis_application_psalm_sast_to_github_security:
+    name: Run Psalm and upload results to github security
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: ${{ inputs.job_strategy_fail_fast }}
+      matrix:
+        path: ${{ fromJSON(inputs.directories) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Path filter check
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            check: '${{ matrix.path }}/**'
+      - name: Setup PHP with tools
+        if: steps.filter.outputs.check == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{inputs.php_version}}
+          tools: vimeo/psalm
+      - name: Composer install
+        if: steps.filter.outputs.check == 'true'
+        run: ${{ inputs.composer_command }}
+      - name: Run psalm
+        if: steps.filter.outputs.check == 'true'
+        run: psalm --output-format=github --taint-analysis --report=psalm-results.sarif
+      - name: Upload Security Analysis results to GitHub
+        if: steps.filter.outputs.check == 'true'
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ matrix.path }}/psalm-results.sarif
