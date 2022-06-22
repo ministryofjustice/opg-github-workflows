@@ -1,0 +1,55 @@
+# Generate Branch Names from GITHUB data
+name: "[Data - Parse] Branch Name"
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      push_to_github_env:
+        description: 'Boolean to push the clean branch name into $GITHUB_ENV as $BRANCH_NAME'
+        type: boolean
+        default: true
+    outputs:
+      raw_branch_name:
+        description: 'Raw branch name with slashes and other non alphanumeric chars left in place'
+        value: ${{ jobs.extract.outputs.raw_branch }}
+      parsed_branch_name:
+        description: 'Parsed branch name with ONLY alphanumeric chars.'
+        value: ${{ jobs.extract.outputs.parsed_branch }}
+
+permissions:
+  contents: read
+  security-events: none
+  pull-requests: none
+  actions: none
+  checks: none
+  deployments: none
+  issues: none
+  packages: none
+  repository-projects: none
+  statuses: none
+
+jobs:
+  extract:
+    name: 'Use the tagged_images json to create a counter for safe files'
+    runs-on: ubuntu-latest
+    outputs:
+      raw_branch: ${{ steps.parse.outputs.raw_branch }}
+      parsed_branch: ${{ steps.parse.outputs.parsed_branch }}
+    steps:
+      - id: parse
+        name: Parse branch name
+        run: |
+          if [ "$GITHUB_EVENT_NAME" == "push" ]; then
+            raw_branch="main"
+            parsed_branch="main"
+          else
+            raw_branch=${{ github.head_ref }}
+            parsed_branch=$( echo "${branch}" | tr -cd '[:alnum:]')
+          fi
+          echo "::set-output name=raw_branch::${raw_branch}\n"
+          echo "::set-output name=parsed_branch::${parsed_branch}\n"
+      - name: Push to GITHUB_ENV
+        if: inputs.push_to_github_env == 'true'
+        run: |
+          echo BRANCH_NAME=${{ steps.parse.outputs.parsed_branch }} >> $GITHUB_ENV
