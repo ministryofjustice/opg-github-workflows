@@ -49,8 +49,8 @@ jobs:
           fi
           echo "EVENT: ${GITHUB_EVENT_NAME}"
           echo "REF: ${{ github.head_ref }}"
-          echo "RAW BRANCH: ${{ steps.parse.outputs.raw_branch }}"
-          echo "PARSED BRANCH: ${{ steps.parse.outputs.parsed_branch }}"
+          echo "RAW BRANCH: ${raw_branch}"
+          echo "PARSED BRANCH: ${parsed_branch}"
 
           echo "::set-output name=raw_branch::${raw_branch}"
           echo "::set-output name=parsed_branch::${parsed_branch}"
