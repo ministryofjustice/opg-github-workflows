@@ -30,7 +30,9 @@ permissions:
   statuses: none
 
 jobs:
-  trivy_scan_generate_indexed_images:
+  # As trivy writes out a file, as these will be a race condition, add an index
+  # that we can use in the file name to avoid clashes
+  generate_indexed_images:
     name: 'Use the tagged_images json to create a counter for safe files'
     uses: './.github/workflows/data-parse-add-index.yml'
     inputs:
@@ -38,12 +40,13 @@ jobs:
 
   trivy_scan_and_upload_tagged_images:
     name: 'Run trivy against the tagged_images list and upload results'
-    needs: [trivy_scan_generate_indexed_images]
+    needs: [generate_indexed_images]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: ${{ inputs.job_strategy_fail_fast }}
       matrix:
-        tagged_image: ${{ fromJSON(needs.trivy_scan_generate_indexed_images.outputs.indexed_list) }}
+        # use the output of the indexed list
+        tagged_image: ${{ fromJSON(needs.generate_indexed_images.outputs.indexed_list) }}
     steps:
       - name: Scan
         uses: aquasecurity/trivy-action@0.4.1
