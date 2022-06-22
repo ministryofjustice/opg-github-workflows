@@ -49,7 +49,11 @@ jobs:
           fi
           echo "::set-output name=raw_branch::${raw_branch}\n"
           echo "::set-output name=parsed_branch::${parsed_branch}\n"
+      - name: Echo Branch Names
+        run: |
+          echo "RAW BRANCH:\t ${{ steps.parse.outputs.raw_branch }}\n"
+          echo "PARSED BRANCH:\t ${{ steps.parse.outputs.parsed_branch }}\n"
       - name: Push to GITHUB_ENV
-        if: inputs.push_to_github_env == 'true'
+        if: inputs.push_to_github_env
         run: |
           echo BRANCH_NAME=${{ steps.parse.outputs.parsed_branch }} >> $GITHUB_ENV
