@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   extract:
-    name: 'Use the tagged_images json to create a counter for safe files'
+    name: 'Use github data to generate a clean branch name'
     runs-on: ubuntu-latest
     outputs:
       raw_branch: ${{ steps.parse.outputs.raw_branch }}
@@ -47,12 +47,14 @@ jobs:
             raw_branch=${{ github.head_ref }}
             parsed_branch=$( echo "${branch}" | tr -cd '[:alnum:]')
           fi
+          echo "EVENT: ${GITHUB_EVENT_NAME}"
+          echo "REF: ${{ github.head_ref }}"
+          echo "RAW BRANCH: ${{ steps.parse.outputs.raw_branch }}"
+          echo "PARSED BRANCH: ${{ steps.parse.outputs.parsed_branch }}"
+
           echo "::set-output name=raw_branch::${raw_branch}\n"
           echo "::set-output name=parsed_branch::${parsed_branch}\n"
-      - name: Echo Branch Names
-        run: |
-          echo "RAW BRANCH:\t ${{ steps.parse.outputs.raw_branch }}\n"
-          echo "PARSED BRANCH:\t ${{ steps.parse.outputs.parsed_branch }}\n"
+
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
