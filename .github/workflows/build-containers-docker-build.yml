@@ -48,3 +48,6 @@ jobs:
         run: |
           echo "Build command: ${{ env.cmd }}"
           ${{ env.cmd }}
+      - name: Image list
+        run :
+          docker images
