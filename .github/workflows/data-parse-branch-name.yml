@@ -40,15 +40,18 @@ jobs:
       - id: parse
         name: Parse branch name
         run: |
-          if [ "${{ github.head_ref}}" == "" ]; then
+
+          branch=${GITHUB_REF#refs/heads/}
+
+          if [ "${branch}" == "" ]; then
             raw_branch="main"
             parsed_branch="main"
           else
-            raw_branch=${{ github.head_ref }}
+            raw_branch=${branch}
             parsed_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
           fi
-          echo "EVENT: ${GITHUB_EVENT_NAME}"
-          echo "REF: ${{ github.head_ref }}"
+          echo "GITHUB_REF: ${GITHUB_REF}"
+          echo "GITHUB HEAD REF: ${{ github.head_ref }}"
           echo "RAW BRANCH: ${raw_branch}"
           echo "PARSED BRANCH: ${parsed_branch}"
 
