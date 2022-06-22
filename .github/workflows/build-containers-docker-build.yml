@@ -47,3 +47,4 @@ jobs:
           cmd: ${{ format( inputs.formatted_build_command, matrix.image.name ) }}
         run: |
           echo "Build command: ${{ env.cmd }}"
+          ${{ env.cmd }}
