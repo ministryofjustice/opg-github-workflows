@@ -40,7 +40,7 @@ jobs:
       - id: parse
         name: Parse branch name
         run: |
-          if [ "$GITHUB_EVENT_NAME" == "push" ]; then
+          if [ "${{ github.head_ref}}" == "" ]; then
             raw_branch="main"
             parsed_branch="main"
           else
