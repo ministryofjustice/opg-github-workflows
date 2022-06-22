@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       image_data:
-        description: 'String containing a JSON formated list of directories to build from. Exclude the trailing slash. For example: \'[{"name":"test", "directory": "./app"}]\' .'
+        description: 'String containing a JSON formated list of directories to build from. Exclude the trailing slash. For example: [{"name":"test", "directory": "./app"}] .'
         type: string
         required: true
       formatted_build_command:
