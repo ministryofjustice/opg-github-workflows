@@ -43,7 +43,7 @@ jobs:
               index_added="${object_array}${object},"
               ((i=i+1))
           done << EOT
-          $(jq -c '.[]' <<< ${{ inputs.original_list }}
+          $(jq -c '.[]' <<< ${{ inputs.original_list }})
           EOT
 
           echo "::set-output name=indexed::${index_added}"
