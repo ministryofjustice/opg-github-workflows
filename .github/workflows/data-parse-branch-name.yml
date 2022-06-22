@@ -52,8 +52,8 @@ jobs:
           echo "RAW BRANCH: ${{ steps.parse.outputs.raw_branch }}"
           echo "PARSED BRANCH: ${{ steps.parse.outputs.parsed_branch }}"
 
-          echo "::set-output name=raw_branch::${raw_branch}\n"
-          echo "::set-output name=parsed_branch::${parsed_branch}\n"
+          echo "::set-output name=raw_branch::${raw_branch}"
+          echo "::set-output name=parsed_branch::${parsed_branch}"
 
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
