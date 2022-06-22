@@ -44,6 +44,6 @@ jobs:
         uses: actions/checkout@v3
       - name: Build
         env:
-          cmd: ${{ format( ${{ inputs.formatted_build_command }}, ${{ matrix.image.name }} ) }}
+          cmd: ${{ format( inputs.formatted_build_command, matrix.image.name ) }}
         run: |
           echo "Build command: ${{ env.cmd }}"
