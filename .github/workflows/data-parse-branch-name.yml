@@ -14,8 +14,11 @@ on:
         description: 'Raw branch name with slashes and other non alphanumeric chars left in place'
         value: ${{ jobs.extract.outputs.raw_branch }}
       parsed_branch_name:
-        description: 'Parsed branch name with ONLY alphanumeric chars.'
+        description: 'Parsed branch name with some chars removed.'
         value: ${{ jobs.extract.outputs.parsed_branch }}
+      alphanumeric_branch_name:
+        description: 'Parsed branch name with ONLY alphanumeric chars.'
+        value: ${{ jobs.extract.outputs.alphanumeric_branch }}
 
 permissions:
   contents: read
@@ -36,6 +39,7 @@ jobs:
     outputs:
       raw_branch: ${{ steps.parse.outputs.raw_branch }}
       parsed_branch: ${{ steps.parse.outputs.parsed_branch }}
+      alphanumeric_branch: ${{ steps.parse.outputs.alphanumeric_branch }}
     steps:
       - id: parse
         name: Parse branch name
@@ -46,17 +50,23 @@ jobs:
           if [ "${branch}" == "" ]; then
             raw_branch="main"
             parsed_branch="main"
+            alphanumeric_branch="main"
           else
             raw_branch=${branch}
-            parsed_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
+            parsed_branch=${branch//-}
+            parsed_branch=${branch//_}
+            parsed_branch=${branch//\/}
+            alphanumeric_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
           fi
           echo "GITHUB_REF: ${GITHUB_REF}"
           echo "GITHUB HEAD REF: ${{ github.head_ref }}"
           echo "RAW BRANCH: ${raw_branch}"
           echo "PARSED BRANCH: ${parsed_branch}"
+          echo "ALPHANUMERIC BRANCH: ${alphanumeric_branch}"
 
           echo "::set-output name=raw_branch::${raw_branch}"
           echo "::set-output name=parsed_branch::${parsed_branch}"
+          echo "::set-output name=alphanumeric_branch::${alphanumeric_branch}"
 
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
