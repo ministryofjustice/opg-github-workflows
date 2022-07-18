@@ -1,0 +1,33 @@
+name: "[Linting - Application] Pylint"
+
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        type: string
+        description: "Version of python to use"
+        default: "3.10.5"
+      directory:
+        type: string
+        description: "Directory path to lint"
+        required: true
+
+jobs:
+  python_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python version
+        uses: actions/setup-python@v4.1.0
+        with:
+          python-version: ${{ inputs.python_version }}
+      - name: Install pylint
+        working-directory: ${{ inputs.directory }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint
+      - name: Run pylint
+        working-directory: ${{ inputs.directory }}
+        run:
+          find . -name '*.py' -exec pylint {} \;
