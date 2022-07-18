@@ -1,0 +1,31 @@
+name: "[Linting - Infrastructure] Terraform Lint"
+
+
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        type: string
+        description: "Version of terraform to use"
+        required: true
+      terraform_wrapper:
+        type: boolean
+        description: "Enable terraform wrapper"
+        default: false
+      directory:
+        type: string
+        description: "Directory path to lint"
+        default: "./terraform"
+
+jobs:
+  terraform_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: ${{ inputs.terraform_wrapper }}
+      - name: "Run Terraform Lint"
+        working-directory: ${{ inputs.directory }}
+        run: terraform fmt -check -recursive
