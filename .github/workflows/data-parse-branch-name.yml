@@ -10,13 +10,13 @@ on:
         type: boolean
         default: true
     outputs:
-      raw_branch_name:
+      raw:
         description: 'Raw branch name with slashes and other non alphanumeric chars left in place'
         value: ${{ jobs.extract.outputs.raw_branch }}
-      parsed_branch_name:
+      parsed:
         description: 'Parsed branch name with some chars removed.'
         value: ${{ jobs.extract.outputs.parsed_branch }}
-      alphanumeric_branch_name:
+      alphanumeric:
         description: 'Parsed branch name with ONLY alphanumeric chars.'
         value: ${{ jobs.extract.outputs.alphanumeric_branch }}
 
