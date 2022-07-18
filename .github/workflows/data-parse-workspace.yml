@@ -43,4 +43,4 @@ jobs:
           fi
 
           echo ::set-output name=workspace_name::${workspace_name}
-          echo ${workspace_name}
+          echo "WORKSPACE: ${workspace_name}"
