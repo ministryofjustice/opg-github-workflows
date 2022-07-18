@@ -1,0 +1,46 @@
+# Generate Terraform Workspace name
+name: "[Data - Parse] Terraform Workspace Name"
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      workspace_name:
+        description: 'Generated terraform workspace name.'
+        value: ${{ jobs.generate_workspace_name.outputs.workspace_name }}
+
+permissions:
+  contents: read
+  security-events: none
+  pull-requests: none
+  actions: none
+  checks: none
+  deployments: none
+  issues: none
+  packages: none
+  repository-projects: none
+  statuses: none
+
+jobs:
+  generate_workspace_name:
+    name: 'Generate the terraform workspace name to use'
+    runs-on: ubuntu-latest
+    outputs:
+      workspace_name: ${{ steps.parse.outputs.workspace_name }}
+    steps:
+      - id: workspace_name
+        name: Generate
+        run: |
+          if [ "${{ github.head_ref }}" == "refs/heads/main" ]; then
+            workspace_name="production"
+          else
+            workspace_name=${{ github.event.number }}${{ github.head_ref }}
+            workspace_name=${workspace_name//-}
+            workspace_name=${workspace_name//_}
+            workspace_name=${workspace_name//\/}
+            workspace_name=${workspace_name:0:11}
+            workspace_name=$(echo ${workspace_name} | tr '[:upper:]' '[:lower:]')
+          fi
+
+          echo ::set-output name=workspace_name::${workspace_name}
+          echo ${workspace_name}
