@@ -11,7 +11,7 @@ on:
     inputs:
       branch_name:
         type: string
-        description: "Current Github branch name"
+        description: "Current Git branch name"
         required: true
     secrets:
       source_github_token:

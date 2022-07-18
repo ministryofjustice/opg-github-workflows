@@ -34,7 +34,7 @@ jobs:
           if [ "${{ github.head_ref }}" == "refs/heads/main" ]; then
             workspace_name="production"
           else
-            workspace_name=${{ github.event.number }}${{ github.head_ref }}
+            workspace_name="${{ github.event.number }}${{ github.head_ref }}"
             workspace_name=${workspace_name//-}
             workspace_name=${workspace_name//_}
             workspace_name=${workspace_name//\/}
