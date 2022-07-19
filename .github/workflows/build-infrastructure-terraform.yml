@@ -1,0 +1,97 @@
+name: "[Build - Infrastructure] Terraform Plan And Build"
+
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        type: string
+        description: "Version of terraform to use"
+        required: true
+      terraform_wrapper:
+        type: boolean
+        description: "Enable terraform wrapper"
+        default: false
+        required: false
+      terraform_directory:
+        type: string
+        description: "Directory to run terraform from"
+        default: "./terraform"
+        required: false
+      terraform_workspace:
+        type: string
+        description: "Terraform workspace to use"
+        default: 'development'
+        required: false
+      terraform_apply:
+        type: boolean
+        description: "Boolean to determine if we this runs the apply when true"
+        default: false
+        required: false
+      terraform_lint:
+        type: boolean
+        description: "Run terraform linting"
+        default: false
+        required: false
+      aws_region:
+        type: string
+        description: "AWS region to use in creds"
+        default: "eu-west-1"
+        required: false
+    secrets:
+      AWS_ACCESS_KEY_ID_ACTIONS:
+        required: true
+      AWS_SECRET_ACCESS_KEY_ACTIONS:
+        required: true
+
+jobs:
+  terraform_plan_and_apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: unfor19/install-aws-cli-action@v1
+      # setup terraform
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: ${{ inputs.terraform_wrapper }}
+      # only run this if set to
+      - name: "Run Terraform Lint"
+        if: inputs.terraform_lint == true
+        working-directory: ${{ inputs.terraform_directory }}
+        run: terraform fmt -check -recursive
+      # aws credentials
+      - name: Configure AWS Credentials For Terraform
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
+          aws-region: ${{ inputs.aws_region }}
+          role-duration-seconds: 3600
+          role-session-name: OPGTerraformGithubAction
+      # terraform init
+      - name: Terraform Init
+        run: |
+          terraform init -input=false
+        working-directory: ${{ inputs.terraform_directory }}
+
+      - name: Terraform List Workspaces
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          terraform workspace show
+        working-directory: ${{ inputs.terraform_directory }}
+
+      - name: Terraform Plan
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          terraform plan -input=false -parallelism=30
+        working-directory: ${{ inputs.terraform_directory }}
+
+      - name: Terraform Apply
+        if: inputs.terraform_apply == true
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30
+        working-directory: ${{ inputs.terraform_directory }}
