@@ -12,10 +12,12 @@ on:
         type: boolean
         description: "Enable terraform wrapper"
         default: false
+        required: false
       directory:
         type: string
         description: "Directory path to lint"
         default: "./terraform"
+        required: false
 
 jobs:
   terraform_lint:

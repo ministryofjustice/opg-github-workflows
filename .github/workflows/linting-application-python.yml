@@ -8,6 +8,7 @@ on:
         type: string
         description: "Version of python to use"
         default: "3.10.5"
+        required: false
       directory:
         type: string
         description: "Directory path to lint"
