@@ -31,10 +31,13 @@ jobs:
       - id: workspace_name
         name: Generate
         run: |
-          if [ "${{ github.head_ref }}" == "refs/heads/main" ]; then
+          branch=${GITHUB_REF#refs/heads/}
+          echo "BRANCH: ${branch}"
+
+          if [ "${branch}" == "main" ]; then
             workspace_name="production"
           else
-            workspace_name="${{ github.event.number }}${{ github.head_ref }}"
+            workspace_name="${{ github.event.number }}${branch}"
             workspace_name=${workspace_name//-}
             workspace_name=${workspace_name//_}
             workspace_name=${workspace_name//\/}
