@@ -58,6 +58,10 @@ on:
         description: "Flag used to decide if the workspace should be registered for cleanup later"
         required: true
 
+    outputs:
+      terraform_output_as_json:
+        description: 'terraform output as json string'
+        value: ${{ jobs.terraform_plan_and_apply.outputs.terraform_output_as_json }}
     secrets:
       AWS_ACCESS_KEY_ID_ACTIONS:
         required: true
@@ -67,6 +71,8 @@ on:
 jobs:
   terraform_plan_and_apply:
     runs-on: ubuntu-latest
+    outputs:
+      terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
     steps:
       - uses: actions/checkout@v3
       - uses: unfor19/install-aws-cli-action@v1
@@ -138,6 +144,4 @@ jobs:
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
         run: |
-          echo ::set-output name=terraform_outputs::$(terraform output -raw workspace_name)
-          echo ::set-output name=container_version::$(terraform output -raw container_version)
-          echo ::set-output name=maintenance_url::$(terraform output -raw maintenance_url)
+          echo ::set-output name=terraform_output_as_json::$(terraform output -json)
