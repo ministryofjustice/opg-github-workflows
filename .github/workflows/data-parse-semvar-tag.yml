@@ -13,9 +13,6 @@ on:
         type: string
         description: "Current Git branch name"
         required: true
-    secrets:
-      source_github_token:
-          required: true
 
 jobs:
   create_tags:
@@ -26,7 +23,7 @@ jobs:
         id: bump_version
         uses: anothrNick/github-tag-action@1.36.0
         env:
-          GITHUB_TOKEN: ${{ secrets.source_github_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INITIAL_VERSION: 0.0.0
           DEFAULT_BUMP: minor
           PRERELEASE_SUFFIX: ${{ inputs.branch_name }}
