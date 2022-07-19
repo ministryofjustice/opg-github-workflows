@@ -37,6 +37,23 @@ on:
         description: "AWS region to use in creds"
         default: "eu-west-1"
         required: false
+      aws_account_id:
+        type: string
+        description: "AWS account id to use for workspace manager"
+        required: true
+      aws_iam_role:
+        type: string
+        description: "AWS iam role used for workspace manager"
+        required: true
+      semvar_tag:
+        type: string
+        description: "SEMVAR based version tag"
+        required: true
+      is_ephemeral:
+        type: boolean
+        description: "Flag used to decide if the workspace should be registered for cleanup later"
+        required: true
+
     secrets:
       AWS_ACCESS_KEY_ID_ACTIONS:
         required: true
@@ -88,6 +105,21 @@ jobs:
           terraform plan -input=false -parallelism=30
         working-directory: ${{ inputs.terraform_directory }}
 
+      # Register the ephemeral workspace and env for the
+      # cleanup scripts
+      - name: Register ephemeral workspace
+        if: inputs.is_ephemeral == true
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+          TF_VAR_container_version: ${{ inputs.semvar_tag }}
+        run: |
+          wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
+          sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
+          sudo chmod +x /usr/local/bin/terraform-workspace-manager
+          terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=24 -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
+        working-directory: ${{ inputs.terraform_directory }}
+
+      #
       - name: Terraform Apply
         if: inputs.terraform_apply == true
         env:
