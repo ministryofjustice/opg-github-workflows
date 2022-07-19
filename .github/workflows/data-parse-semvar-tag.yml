@@ -5,7 +5,7 @@ name: "[Data - Parse] Semvar Tag"
 on:
   workflow_call:
     outputs:
-      version_tag:
+      tag:
         description: "Version Tag"
         value: ${{ jobs.create_tags.outputs.version_tag }}
     inputs:
