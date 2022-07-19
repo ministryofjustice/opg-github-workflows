@@ -26,7 +26,7 @@ jobs:
     name: 'Generate the terraform workspace name to use'
     runs-on: ubuntu-latest
     outputs:
-      workspace_name: ${{ steps.parse.outputs.workspace_name }}
+      workspace_name: ${{ steps.workspace_name.outputs.workspace_name }}
     steps:
       - id: workspace_name
         name: Generate
