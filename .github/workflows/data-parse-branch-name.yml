@@ -9,6 +9,7 @@ on:
         description: 'Boolean to push the clean branch name into $GITHUB_ENV as $BRANCH_NAME'
         type: boolean
         default: true
+        required: false
     outputs:
       raw:
         description: 'Raw branch name with slashes and other non alphanumeric chars left in place'

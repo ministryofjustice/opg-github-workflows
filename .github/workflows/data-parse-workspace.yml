@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   workflow_call:
     outputs:
-      workspace_name:
+      name:
         description: 'Generated terraform workspace name.'
         value: ${{ jobs.generate_workspace_name.outputs.workspace_name }}
 
