@@ -20,8 +20,7 @@ on:
       terraform_workspace:
         type: string
         description: "Terraform workspace to use"
-        default: 'development'
-        required: false
+        required: true
       terraform_apply:
         type: boolean
         description: "Boolean to determine if we this runs the apply when true"
