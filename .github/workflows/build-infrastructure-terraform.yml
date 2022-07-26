@@ -29,7 +29,7 @@ on:
       terraform_variables:
         type: string
         description: 'String of terraform variables (-var="foo=bar") to use on commands'
-        required: true
+        required: false
         default: ""
       terraform_lint:
         type: boolean
