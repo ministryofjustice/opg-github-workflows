@@ -65,10 +65,10 @@ on:
         description: "Flag used to decide if the workspace should be registered for cleanup later"
         required: true
 
-    outputs:
-      terraform_output_as_json:
-        description: 'terraform output as json string'
-        value: ${{ jobs.terraform_plan_and_apply.outputs.terraform_output_as_json }}
+    # outputs:
+    #   terraform_output_as_json:
+    #     description: 'terraform output as json string'
+    #     value: ${{ jobs.terraform_plan_and_apply.outputs.terraform_output_as_json }}
     secrets:
       AWS_ACCESS_KEY_ID_ACTIONS:
         required: true
@@ -149,9 +149,9 @@ jobs:
         # terraform apply ${{ inputs.terraform_variables }} -lock-timeout=300s -input=false -auto-approve -parallelism=30
         working-directory: ${{ inputs.terraform_directory }}
       #
-      - name: Terraform Outputs
-        id: terraform_outputs
-        env:
-          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-        run: |
-          echo ::set-output name=terraform_output_as_json::$(terraform output -json)
+      # - name: Terraform Outputs
+      #   id: terraform_outputs
+      #   env:
+      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+      #   run: |
+      #     echo ::set-output name=terraform_output_as_json::$(terraform output -json)
