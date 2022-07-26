@@ -3,62 +3,62 @@ name: "[Build - Infrastructure] Terraform Plan And Build"
 on:
   workflow_call:
     inputs:
-    #   terraform_version:
-    #     type: string
-    #     description: "Version of terraform to use"
-    #     required: true
-    #   terraform_wrapper:
-    #     type: boolean
-    #     description: "Enable terraform wrapper"
-    #     default: false
-    #     required: false
-    #   terraform_directory:
-    #     type: string
-    #     description: "Directory to run terraform from"
-    #     default: "./terraform"
-    #     required: false
-    #   terraform_workspace:
-    #     type: string
-    #     description: "Terraform workspace to use"
-    #     required: true
-    #   terraform_apply:
-    #     type: boolean
-    #     description: "Boolean to determine if we this runs the apply when true"
-    #     default: false
-    #     required: false
-    #   terraform_variables:
-    #     type: string
-    #     description: 'String of terraform variables (-var="foo=bar") to use on commands'
-    #     required: false
-    #     default: ""
+      terraform_version:
+        type: string
+        description: "Version of terraform to use"
+        required: true
+      terraform_wrapper:
+        type: boolean
+        description: "Enable terraform wrapper"
+        default: false
+        required: false
+      terraform_directory:
+        type: string
+        description: "Directory to run terraform from"
+        default: "./terraform"
+        required: false
+      terraform_workspace:
+        type: string
+        description: "Terraform workspace to use"
+        required: true
+      terraform_apply:
+        type: boolean
+        description: "Boolean to determine if we this runs the apply when true"
+        default: false
+        required: false
+      terraform_variables:
+        type: string
+        description: 'String of terraform variables (-var="foo=bar") to use on commands'
+        required: false
+        default: ""
       aws_region:
         type: string
         description: "AWS region to use in creds"
         default: "eu-west-1"
         required: false
-    #   aws_account_id:
-    #     type: string
-    #     description: "AWS account id to use for workspace manager"
-    #     default: ""
-    #     required: false
-    #   aws_iam_role:
-    #     type: string
-    #     description: "AWS iam role used for workspace manager"
-    #     default: ""
-    #     required: false
-    #   workspace_manager_protection_duration:
-    #     type: string
-    #     description: "Number of hours to protect the workspace for. Defaults to 24"
-    #     required: false
-    #     default: "24"
-    #   semvar_tag:
-    #     type: string
-    #     description: "SEMVAR based version tag"
-    #     required: true
-    #   is_ephemeral:
-    #     type: boolean
-    #     description: "Flag used to decide if the workspace should be registered for cleanup later"
-    #     required: true
+      aws_account_id:
+        type: string
+        description: "AWS account id to use for workspace manager"
+        default: ""
+        required: false
+      aws_iam_role:
+        type: string
+        description: "AWS iam role used for workspace manager"
+        default: ""
+        required: false
+      workspace_manager_protection_duration:
+        type: string
+        description: "Number of hours to protect the workspace for. Defaults to 24"
+        required: false
+        default: "24"
+      semvar_tag:
+        type: string
+        description: "SEMVAR based version tag"
+        required: true
+      is_ephemeral:
+        type: boolean
+        description: "Flag used to decide if the workspace should be registered for cleanup later"
+        required: true
 
     # outputs:
     #   terraform_output_as_json:
@@ -97,46 +97,43 @@ jobs:
           terraform init -input=false
         working-directory: ${{ inputs.terraform_directory }}
 
-      # - name: Terraform List Workspaces
-      #   env:
-      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-      #   run: |
-      #     terraform workspace list
-      #   working-directory: ${{ inputs.terraform_directory }}
+      - name: Terraform List Workspaces
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          terraform workspace list
+        working-directory: ${{ inputs.terraform_directory }}
 
-      # - name: Terraform Plan
-      #   env:
-      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-      #   run: |
-      #     terraform workspace show
-      #     terraform plan ${{ inputs.terraform_variables }} -input=false -parallelism=30
-      #   working-directory: ${{ inputs.terraform_directory }}
+      - name: Terraform Plan
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          terraform workspace show
+          terraform plan ${{ inputs.terraform_variables }} -input=false -parallelism=30
+        working-directory: ${{ inputs.terraform_directory }}
 
-      # Register the ephemeral workspace and env for the
-      # cleanup scripts
-      # - name: Register ephemeral workspace
-      #   if: inputs.is_ephemeral == true
-      #   env:
-      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-      #   run: |
-      #     echo "WORKSPACE MANAGER"
-      #   # wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
-      #   # sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
-      #   # sudo chmod +x /usr/local/bin/terraform-workspace-manager
-      #   # terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
-      #   working-directory: ${{ inputs.terraform_directory }}
+      - name: Register ephemeral workspace
+        if: inputs.is_ephemeral == true
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          echo "WORKSPACE MANAGER"
+        # wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
+        # sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
+        # sudo chmod +x /usr/local/bin/terraform-workspace-manager
+        # terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
+        working-directory: ${{ inputs.terraform_directory }}
 
-      #
-      # - name: Terraform Apply
-      #   if: inputs.terraform_apply == true
-      #   env:
-      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-      #   run: |
-      #     echo "APPLYING"
-      #     ls -lart
-      #   # terraform apply ${{ inputs.terraform_variables }} -lock-timeout=300s -input=false -auto-approve -parallelism=30
-      #   working-directory: ${{ inputs.terraform_directory }}
-      #
+      - name: Terraform Apply
+        if: inputs.terraform_apply == true
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          echo "APPLYING"
+          ls -lart
+        # terraform apply ${{ inputs.terraform_variables }} -lock-timeout=300s -input=false -auto-approve -parallelism=30
+        working-directory: ${{ inputs.terraform_directory }}
+
       # - name: Terraform Outputs
       #   id: terraform_outputs
       #   env:
