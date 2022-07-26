@@ -51,10 +51,6 @@ on:
         description: "AWS iam role used for workspace manager"
         default: ""
         required: false
-      aws_role_to_assume_arn:
-        type: string
-        description: "Full ARN of the role to assume to run all AWS commands"
-        required: true
       workspace_manager_protection_duration:
         type: string
         description: "Number of hours to protect the workspace for. Defaults to 24"
@@ -105,7 +101,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
           aws-region: ${{ inputs.aws_region }}
-          role-to-assume: ${{ input.aws_role_to_assume_arn }}
           role-duration-seconds: 3600
           role-session-name: OPGTerraformGithubAction
       # terraform init
