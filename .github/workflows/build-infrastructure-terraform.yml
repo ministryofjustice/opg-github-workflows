@@ -131,10 +131,11 @@ jobs:
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
         run: |
-          wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
-          sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
-          sudo chmod +x /usr/local/bin/terraform-workspace-manager
-          terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
+          echo "WORKSPACE MANAGER"
+        # wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
+        # sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
+        # sudo chmod +x /usr/local/bin/terraform-workspace-manager
+        # terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
         working-directory: ${{ inputs.terraform_directory }}
 
       #
