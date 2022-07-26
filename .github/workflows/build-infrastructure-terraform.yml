@@ -44,11 +44,13 @@ on:
       aws_account_id:
         type: string
         description: "AWS account id to use for workspace manager"
-        required: true
+        default: ""
+        required: false
       aws_iam_role:
         type: string
         description: "AWS iam role used for workspace manager"
-        required: true
+        default: ""
+        required: false
       semvar_tag:
         type: string
         description: "SEMVAR based version tag"
