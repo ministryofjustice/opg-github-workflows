@@ -31,11 +31,6 @@ on:
         description: 'String of terraform variables (-var="foo=bar") to use on commands'
         required: false
         default: ""
-      terraform_lint:
-        type: boolean
-        description: "Run terraform linting"
-        default: false
-        required: false
       aws_region:
         type: string
         description: "AWS region to use in creds"
@@ -83,17 +78,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: unfor19/install-aws-cli-action@v1
-      # setup terraform
       - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
-      # only run this if set to
-      - name: "Run Terraform Lint"
-        if: inputs.terraform_lint == true
-        working-directory: ${{ inputs.terraform_directory }}
-        run: |
-          terraform fmt -check -recursive
       # aws credentials
       - name: Configure AWS Credentials For Terraform
         uses: aws-actions/configure-aws-credentials@v1
@@ -126,28 +114,28 @@ jobs:
 
       # Register the ephemeral workspace and env for the
       # cleanup scripts
-      - name: Register ephemeral workspace
-        if: inputs.is_ephemeral == true
-        env:
-          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-        run: |
-          echo "WORKSPACE MANAGER"
-        # wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
-        # sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
-        # sudo chmod +x /usr/local/bin/terraform-workspace-manager
-        # terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
-        working-directory: ${{ inputs.terraform_directory }}
+      # - name: Register ephemeral workspace
+      #   if: inputs.is_ephemeral == true
+      #   env:
+      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+      #   run: |
+      #     echo "WORKSPACE MANAGER"
+      #   # wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
+      #   # sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
+      #   # sudo chmod +x /usr/local/bin/terraform-workspace-manager
+      #   # terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
+      #   working-directory: ${{ inputs.terraform_directory }}
 
       #
-      - name: Terraform Apply
-        if: inputs.terraform_apply == true
-        env:
-          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-        run: |
-          echo "APPLYING"
-          ls -lart
-        # terraform apply ${{ inputs.terraform_variables }} -lock-timeout=300s -input=false -auto-approve -parallelism=30
-        working-directory: ${{ inputs.terraform_directory }}
+      # - name: Terraform Apply
+      #   if: inputs.terraform_apply == true
+      #   env:
+      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+      #   run: |
+      #     echo "APPLYING"
+      #     ls -lart
+      #   # terraform apply ${{ inputs.terraform_variables }} -lock-timeout=300s -input=false -auto-approve -parallelism=30
+      #   working-directory: ${{ inputs.terraform_directory }}
       #
       # - name: Terraform Outputs
       #   id: terraform_outputs
