@@ -36,12 +36,12 @@ on:
         description: "AWS region to use in creds"
         default: "eu-west-1"
         required: false
-      aws_account_id:
+      workspace_manager_aws_account_id:
         type: string
         description: "AWS account id to use for workspace manager"
         default: ""
         required: false
-      aws_iam_role:
+      workspace_manager_aws_iam_role:
         type: string
         description: "AWS iam role used for workspace manager"
         default: ""
@@ -121,7 +121,7 @@ jobs:
           wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
           sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
           sudo chmod +x /usr/local/bin/terraform-workspace-manager
-          terraform-workspace-manager -register-workspace=${{ inputs.terraform_workspace }} -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
+          terraform-workspace-manager -register-workspace=${{ inputs.terraform_workspace }} -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.workspace_manager_aws_account_id }} -aws-iam-role=${{ inputs.workspace_manager_aws_iam_role }}
         working-directory: ${{ inputs.terraform_directory }}
 
       - name: Terraform Apply
