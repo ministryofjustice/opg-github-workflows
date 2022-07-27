@@ -72,6 +72,7 @@ on:
 
 jobs:
   terraform_plan_and_apply:
+    name: "[Build - Infrastructure] Terraform Plan And Apply"
     runs-on: ubuntu-latest
     # outputs:
     #   terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
