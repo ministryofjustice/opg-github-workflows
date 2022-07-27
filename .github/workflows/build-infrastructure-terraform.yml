@@ -112,29 +112,27 @@ jobs:
           TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
         run: |
           terraform workspace show
-          terraform plan ${{ inputs.terraform_variables }} -input=false -parallelism=30
+          terraform plan -input=false -parallelism=30 ${{ inputs.terraform_variables }}
         working-directory: ${{ inputs.terraform_directory }}
 
       - name: Register ephemeral workspace
         if: inputs.is_ephemeral == true
-        env:
-          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
         run: |
-          echo "WORKSPACE MANAGER"
-        # wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
-        # sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
-        # sudo chmod +x /usr/local/bin/terraform-workspace-manager
-        # terraform-workspace-manager -register-workspace=$TF_WORKSPACE -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
+          wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
+          sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
+          sudo chmod +x /usr/local/bin/terraform-workspace-manager
+          terraform-workspace-manager -register-workspace=${{ inputs.terraform_workspace }} -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.aws_account_id }} -aws-iam-role=${{ inputs.aws_iam_role }}
         working-directory: ${{ inputs.terraform_directory }}
 
       - name: Terraform Apply
         if: inputs.terraform_apply == true
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+          TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
+          TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "APPLYING"
-          ls -lart
-        # terraform apply ${{ inputs.terraform_variables }} -lock-timeout=300s -input=false -auto-approve -parallelism=30
+          terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${{ inputs.terraform_variables }}
         working-directory: ${{ inputs.terraform_directory }}
 
       # - name: Terraform Outputs
