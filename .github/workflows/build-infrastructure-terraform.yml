@@ -91,7 +91,7 @@ jobs:
           aws-region: ${{ inputs.aws_region }}
           role-duration-seconds: 3600
           role-session-name: OPGTerraformGithubAction
-      # terraform init
+
       - name: Terraform Init
         run: |
           terraform init -input=false
@@ -107,6 +107,9 @@ jobs:
       - name: Terraform Plan
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+          TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
+          TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
         run: |
           terraform workspace show
           terraform plan ${{ inputs.terraform_variables }} -input=false -parallelism=30
