@@ -31,7 +31,7 @@ jobs:
       - id: workspace_name
         name: Generate
         run: |
-          # Use a the source branch name if this is a pull request
+          # Use the source branch name if this is a pull request
           if [ -z "${GITHUB_HEAD_REF}" ]; then
             branch=${GITHUB_REF#refs/heads/}
           else
