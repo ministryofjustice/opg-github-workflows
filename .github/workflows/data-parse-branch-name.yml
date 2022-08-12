@@ -60,7 +60,7 @@ jobs:
             alphanumeric_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
           fi
           echo "GITHUB_REF: ${GITHUB_REF}"
-          echo "GITHUB HEAD REF: ${{ GITHUB_HEAD_REF }}"
+          echo "GITHUB HEAD REF: ${GITHUB_HEAD_REF}"
           echo "RAW BRANCH: ${raw_branch}"
           echo "PARSED BRANCH: ${parsed_branch}"
           echo "ALPHANUMERIC BRANCH: ${alphanumeric_branch}"
