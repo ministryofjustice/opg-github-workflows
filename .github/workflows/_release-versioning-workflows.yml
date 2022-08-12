@@ -52,3 +52,4 @@ jobs:
           echo "Alphanumeric: ${{ needs.branch_name.outputs.alphanumeric }}"
           echo "== SEMVAR =="
           echo "Tag: ${{ needs.semvar_tag.outputs.tag }}"
+          echo "New Tag: ${{ needs.semvar_tag.outputs.new_tag }}"
