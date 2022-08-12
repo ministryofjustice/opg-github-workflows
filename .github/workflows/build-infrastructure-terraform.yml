@@ -86,7 +86,7 @@ jobs:
       # ssh agent
       - name: "Setup SSH private key"
         uses: webfactory/ssh-agent@v0.5.1
-        if: secrets.SSH_PRIVATE_KEY != ''
+        if: ${{ ( secrets.SSH_PRIVATE_KEY != '') }}
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       # aws credentials
