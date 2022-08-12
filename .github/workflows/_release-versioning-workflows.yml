@@ -1,0 +1,66 @@
+name: "[Release] Version workflows"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+  checks: read
+  deployments: none
+  issues: none
+  packages: none
+  pull-requests: read
+  repository-projects: none
+  security-events: none
+  statuses: none
+
+
+jobs:
+  # generate branch name
+  branch_name:
+    name: "Generate the branch name"
+    uses: ./data-parse-branch-name.yml
+    secrets: inherit
+  # generate semvar tag
+  semvar_tag:
+    needs: [branch_name]
+    name: "Generate the semvar tag value"
+    uses: ./data-parse-semvar-tag.yml
+    with:
+      branch_name: ${{ needs.branch_name.outputs.parsed }}"
+    secrets: inherit
+
+  # Generate a release
+  release:
+    name: Create Release
+    runs-on: 'ubuntu-latest'
+    needs: [semvar_tag]
+    steps:
+      - id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.semvar_tag.outputs.tag }}
+          release_name: ${{ steps.create_tag.outputs.tag }}
+          draft: false
+          prerelease: false
+
+  end:
+    name: 'End of workflow'
+    runs-on: 'ubuntu-latest'
+    needs: [branch_name, semvar_tag, release]
+    steps:
+      - name: "Output data"
+        run: |
+          echo "== BRANCH =="
+          echo "Raw: ${{ needs.branch_name.outputs.raw }}"
+          echo "Parsed: ${{ needs.branch_name.outputs.parsed }}"
+          echo "Alphanumeric: ${{ needs.branch_name.outputs.alphanumeric }}"
+          echo "== SEMVAR =="
+          echo "Tag: ${{ needs.semvar_tag.outputs.tag }}"
