@@ -55,7 +55,11 @@ on:
         type: boolean
         description: "Flag used to decide if the workspace should be registered for cleanup later"
         required: true
-
+      use_ssh_private_key:
+        type: boolean
+        description: "Flag used to decide if the workflow should use the SSH_PRIVATE_KEY secret"
+        required: false
+        default: false
     # outputs:
     #   terraform_output_as_json:
     #     description: 'terraform output as json string'
@@ -67,11 +71,15 @@ on:
         required: true
       PAGERDUTY_TOKEN:
         required: true
+      SSH_PRIVATE_KEY:
+        required: false
 
 jobs:
   terraform_plan_and_apply:
     name: "[Build - Infrastructure] Terraform Plan And Apply"
     runs-on: ubuntu-latest
+
+
     # outputs:
     #   terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
     steps:
@@ -81,6 +89,12 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
+      # ssh agent
+      - name: "Setup SSH private key"
+        uses: webfactory/ssh-agent@v0.5.1
+        if: inputs.use_ssh_private_key == true
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       # aws credentials
       - name: Configure AWS Credentials For Terraform
         uses: aws-actions/configure-aws-credentials@v1
