@@ -69,6 +69,8 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY_ACTIONS:
         required: true
+      PAGERDUTY_TOKEN:
+        required: true
 
 jobs:
   terraform_plan_and_apply:
@@ -111,6 +113,7 @@ jobs:
           TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
           TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
+          TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
         run: |
           terraform workspace show
           terraform plan -input=false -parallelism=30 ${{ inputs.terraform_variables }}
@@ -132,6 +135,7 @@ jobs:
           TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
           TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
+          TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
         run: |
           terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${{ inputs.terraform_variables }}
         working-directory: ${{ inputs.terraform_directory }}
