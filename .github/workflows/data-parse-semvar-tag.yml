@@ -13,6 +13,11 @@ on:
         type: string
         description: "Current Git branch name"
         required: true
+      release_branch:
+        type: string
+        description: "Branch used for releases, defaults to main"
+        default: "main"
+        required: false
 
 jobs:
   create_tags:
@@ -27,7 +32,7 @@ jobs:
           INITIAL_VERSION: 0.0.0
           DEFAULT_BUMP: minor
           PRERELEASE_SUFFIX: ${{ inputs.branch_name }}
-          RELEASE_BRANCHES: main
+          RELEASE_BRANCHES: ${{ inputs.release_branch }}
           WITH_V: true
     outputs:
       version_tag: ${{ steps.bump_version.outputs.tag }}
