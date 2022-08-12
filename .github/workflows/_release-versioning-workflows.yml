@@ -12,13 +12,13 @@ jobs:
   # generate branch name
   branch_name:
     name: "Generate the branch name"
-    uses: ./.github/workflows/data-parse-branch-name.yml@main
+    uses: ./.github/workflows/data-parse-branch-name.yml
     secrets: inherit
   # generate semvar tag
   semvar_tag:
     needs: [branch_name]
     name: "Generate the semvar tag value"
-    uses: ./.github/workflows/data-parse-semvar-tag.yml@main
+    uses: ./.github/workflows/data-parse-semvar-tag.yml
     with:
       branch_name: ${{ needs.branch_name.outputs.parsed }}"
     secrets: inherit
