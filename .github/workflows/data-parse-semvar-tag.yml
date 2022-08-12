@@ -31,7 +31,7 @@ jobs:
         uses: anothrNick/github-tag-action@1.39.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INITIAL_VERSION: 0.0.0
+          INITIAL_VERSION: 0.0.1
           DEFAULT_BUMP: minor
           PRERELEASE_SUFFIX: ${{ inputs.branch_name }}
           RELEASE_BRANCHES: ${{ inputs.release_branch }}
