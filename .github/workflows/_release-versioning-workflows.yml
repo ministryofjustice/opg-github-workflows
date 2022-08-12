@@ -20,7 +20,7 @@ jobs:
     name: "Tag Name (${{ needs.branch_name.outputs.parsed }})"
     uses: ./.github/workflows/data-parse-semvar-tag.yml
     with:
-      branch_name: ${{ needs.branch_name.outputs.parsed }}"
+      branch_name: ${{ needs.branch_name.outputs.parsed }}
     secrets: inherit
 
   # Generate a release
