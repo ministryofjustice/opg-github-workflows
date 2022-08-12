@@ -72,7 +72,7 @@ on:
       PAGERDUTY_TOKEN:
         required: true
       GITHUB_ACCESS_TOKEN:
-        required:
+        required: true
       SSH_PRIVATE_KEY:
         required: false
 
