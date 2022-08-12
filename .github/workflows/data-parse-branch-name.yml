@@ -46,7 +46,7 @@ jobs:
         name: Parse branch name
         run: |
 
-          branch=${GITHUB_REF#refs/heads/}
+          branch=${GITHUB_HEAD_REF}
 
           if [ "${branch}" == "" ]; then
             raw_branch="main"
@@ -55,12 +55,12 @@ jobs:
           else
             raw_branch=${branch}
             parsed_branch=${branch//-}
-            parsed_branch=${branch//_}
-            parsed_branch=${branch//\/}
+            parsed_branch=${parsed_branch//_}
+            parsed_branch=${parsed_branch//\/}
             alphanumeric_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
           fi
           echo "GITHUB_REF: ${GITHUB_REF}"
-          echo "GITHUB HEAD REF: ${{ github.head_ref }}"
+          echo "GITHUB HEAD REF: ${{ GITHUB_HEAD_REF }}"
           echo "RAW BRANCH: ${raw_branch}"
           echo "PARSED BRANCH: ${parsed_branch}"
           echo "ALPHANUMERIC BRANCH: ${alphanumeric_branch}"
