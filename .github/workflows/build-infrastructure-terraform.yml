@@ -51,10 +51,6 @@ on:
         description: "Number of hours to protect the workspace for. Defaults to 24"
         required: false
         default: "24"
-      semvar_tag:
-        type: string
-        description: "SEMVAR based version tag"
-        required: true
       is_ephemeral:
         type: boolean
         description: "Flag used to decide if the workspace should be registered for cleanup later"
