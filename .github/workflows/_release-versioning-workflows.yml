@@ -23,26 +23,26 @@ jobs:
       branch_name: ${{ needs.branch_name.outputs.parsed }}
     secrets: inherit
 
-  # Generate a release
-  create_release:
-    name: Create Release
-    runs-on: 'ubuntu-latest'
-    needs: [semvar_tag]
-    steps:
-      - id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.semvar_tag.outputs.tag }}
-          release_name: ${{ steps.semvar_tag.outputs.tag }}
-          draft: false
-          prerelease: false
+  # # Generate a release
+  # create_release:
+  #   name: Create Release
+  #   runs-on: 'ubuntu-latest'
+  #   needs: [semvar_tag]
+  #   steps:
+  #     - id: create_release
+  #       uses: actions/create-release@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         tag_name: ${{ needs.semvar_tag.outputs.tag }}
+  #         release_name: ${{ steps.semvar_tag.outputs.tag }}
+  #         draft: false
+  #         prerelease: false
 
   end:
     name: 'End of workflow'
     runs-on: 'ubuntu-latest'
-    needs: [branch_name, semvar_tag, create_release]
+    needs: [branch_name, semvar_tag]
     steps:
       - name: "Output data"
         run: |
