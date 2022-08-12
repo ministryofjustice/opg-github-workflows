@@ -67,6 +67,8 @@ on:
         required: true
       PAGERDUTY_TOKEN:
         required: true
+      SSH_PRIVATE_KEY:
+        required: false
 
 jobs:
   terraform_plan_and_apply:
@@ -81,6 +83,12 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
+      # ssh agent
+      - name: "Setup SSH private key"
+        uses: webfactory/ssh-agent@v0.5.1
+        if: ${{ ( secrets.SSH_PRIVATE_KEY != '') }}
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       # aws credentials
       - name: Configure AWS Credentials For Terraform
         uses: aws-actions/configure-aws-credentials@v1
