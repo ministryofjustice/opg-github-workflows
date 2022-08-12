@@ -42,7 +42,7 @@ jobs:
   end:
     name: 'End of workflow'
     runs-on: 'ubuntu-latest'
-    needs: [branch_name, semvar_tag]
+    needs: [branch_name, semvar_tag, create_release]
     steps:
       - name: "Output data"
         run: |
