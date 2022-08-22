@@ -60,6 +60,17 @@ on:
         description: "Flag used to decide if the workflow should use the SSH_PRIVATE_KEY secret"
         required: false
         default: false
+      persist_artifacts:
+        type: boolean
+        description: "Upload the artiacts in the artifact_directory"
+        required: false
+        default: false
+      artifact_directory:
+        type: string
+        description: "Directory containing artifacts to be uploaded if persist_artifacts is true"
+        required: false
+        default: "/tmp/terraform_artifacts"
+      
     # outputs:
     #   terraform_output_as_json:
     #     description: 'terraform output as json string'
@@ -155,6 +166,13 @@ jobs:
         run: |
           terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${{ inputs.terraform_variables }}
         working-directory: ${{ inputs.terraform_directory }}
+        
+      - name: Persist Terraform Artifacts
+        uses: actions/upload-artifact@v3
+        if: inputs.persist_artifacts == true
+        with:
+          name: terraform-artifact
+          path: ${{ inputs.artifact_directory }}
 
       # - name: Terraform Outputs
       #   id: terraform_outputs
