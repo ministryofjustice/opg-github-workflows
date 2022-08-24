@@ -71,10 +71,11 @@ on:
         required: false
         default: "/tmp/terraform_artifacts"
       
-    # outputs:
-    #   terraform_output_as_json:
-    #     description: 'terraform output as json string'
-    #     value: ${{ jobs.terraform_plan_and_apply.outputs.terraform_output_as_json }}
+    outputs:
+      terraform_output_as_json:
+        description: 'terraform output as json string'
+        value: ${{ tojson(jobs.terraform_plan_and_apply.outputs.terraform_output_as_json) }}
+
     secrets:
       AWS_ACCESS_KEY_ID_ACTIONS:
         required: true
@@ -95,8 +96,8 @@ jobs:
     runs-on: ubuntu-latest
 
 
-    # outputs:
-    #   terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
+    outputs:
+      terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
     steps:
       - uses: actions/checkout@v3
       - uses: unfor19/install-aws-cli-action@v1
@@ -174,9 +175,10 @@ jobs:
           name: terraform-artifact
           path: ${{ inputs.artifact_directory }}
 
-      # - name: Terraform Outputs
-      #   id: terraform_outputs
-      #   env:
-      #     TF_WORKSPACE: ${{ inputs.terraform_workspace }}
-      #   run: |
-      #     echo ::set-output name=terraform_output_as_json::$(terraform output -json)
+      - name: Terraform Outputs
+        id: terraform_outputs
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          echo ::set-output name=terraform_output_as_json::$(terraform output -json)
+        working-directory: ${{ inputs.terraform_directory }}
