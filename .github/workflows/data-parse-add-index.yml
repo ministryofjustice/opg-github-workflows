@@ -46,4 +46,4 @@ jobs:
           $(jq -c '.[]' <<< ${{ inputs.original_list }})
           EOT
 
-          echo "::set-output name=indexed::${index_added}"
+          echo "indexed=${index_added}" >> $GITHUB_OUTPUT
