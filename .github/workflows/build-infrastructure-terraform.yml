@@ -180,5 +180,5 @@ jobs:
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
         run: |
-          echo ::set-output name=terraform_output_as_json::$(terraform output -json)
+          echo "terraform_output_as_json=$(terraform output -json)" >> $GITHUB_OUTPUT
         working-directory: ${{ inputs.terraform_directory }}

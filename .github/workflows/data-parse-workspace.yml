@@ -50,5 +50,5 @@ jobs:
             workspace_name=$(echo ${workspace_name} | tr '[:upper:]' '[:lower:]')
           fi
 
-          echo ::set-output name=workspace_name::${workspace_name}
+          echo "workspace_name=${workspace_name}" >> $GITHUB_OUTPUT
           echo "WORKSPACE: ${workspace_name}"
