@@ -180,7 +180,7 @@ jobs:
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
         run: |
-          echo "terraform_output_as_json=<<EOF" >> $GITHUB_OUTPUT
+          echo "terraform_output_as_json<<EOF" >> $GITHUB_OUTPUT
           terraform output -json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         working-directory: ${{ inputs.terraform_directory }}
