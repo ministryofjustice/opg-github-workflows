@@ -107,7 +107,7 @@ jobs:
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
       # ssh agent
       - name: Setup SSH private key
-        uses: webfactory/ssh-agent@v0.5.1
+        uses: webfactory/ssh-agent@v0.7.0
         if: inputs.use_ssh_private_key == true
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
