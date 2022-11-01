@@ -45,7 +45,7 @@ jobs:
         with:
           fetch-depth: 2
       - name: tfsec with pr comments
-        uses: aquasecurity/tfsec-pr-commenter-action@v1.2.0
+        uses: aquasecurity/tfsec-pr-commenter-action@v1.3.0
         with:
           soft_fail_commenter: ${{ inputs.soft_fail }}
           working_directory: ${{ matrix.terraform_path }}
