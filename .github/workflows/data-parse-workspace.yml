@@ -42,7 +42,8 @@ jobs:
           if [ "${branch}" == "main" ]; then
             workspace_name="production"
           else
-            workspace_name="${{ github.event.number }}${branch}"
+            branch=${branch::10}
+            workspace_name="${branch}${{ github.event.number }}"
             workspace_name=${workspace_name//-}
             workspace_name=${workspace_name//_}
             workspace_name=${workspace_name//\/}
