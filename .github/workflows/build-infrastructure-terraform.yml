@@ -70,10 +70,10 @@ on:
         description: "Directory containing artifacts to be uploaded if persist_artifacts is true"
         required: false
         default: "/tmp/terraform_artifacts"
-      
+
     outputs:
       terraform_output_as_json:
-        description: 'terraform output as json string'
+        description: "terraform output as json string"
         value: ${{ tojson(jobs.terraform_plan_and_apply.outputs.terraform_output_as_json) }}
 
     secrets:
@@ -94,7 +94,6 @@ jobs:
   terraform_plan_and_apply:
     name: "[Build - Infrastructure] Terraform Plan And Apply"
     runs-on: ubuntu-latest
-
 
     outputs:
       terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
@@ -167,7 +166,7 @@ jobs:
         run: |
           terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${{ inputs.terraform_variables }}
         working-directory: ${{ inputs.terraform_directory }}
-        
+
       - name: Persist Terraform Artifacts
         uses: actions/upload-artifact@v3
         if: inputs.persist_artifacts == true

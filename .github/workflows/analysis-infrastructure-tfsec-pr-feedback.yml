@@ -4,20 +4,20 @@ on:
   workflow_call:
     inputs:
       terraform_path:
-        description: 'String containing a JSON formated list of relative directory paths where terraform files would exist.'
+        description: "String containing a JSON formated list of relative directory paths where terraform files would exist."
         type: string
         default: '["terraform/account", "terraform/environment"]'
       soft_fail:
-        description: 'Set to true to to comment silently without breaking the build'
+        description: "Set to true to to comment silently without breaking the build"
         type: boolean
         default: false
       job_strategy_fail_fast:
-        description: 'When true, GitHub will cancel all in-progress and queued jobs in the matrix if any job in the matrix fails'
+        description: "When true, GitHub will cancel all in-progress and queued jobs in the matrix if any job in the matrix fails"
         type: boolean
         default: false
     secrets:
       source_github_token:
-          required: true
+        required: true
 
 permissions:
   actions: read
