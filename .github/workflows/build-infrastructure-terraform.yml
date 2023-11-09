@@ -70,6 +70,11 @@ on:
         description: "Directory containing artifacts to be uploaded if persist_artifacts is true"
         required: false
         default: "/tmp/terraform_artifacts"
+      terraform_version_file:
+        type: string
+        description: "File containing the terraform version to use"
+        required: false
+        default: "NOT_SET"
 
     outputs:
       terraform_output_as_json:
@@ -100,9 +105,24 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: unfor19/install-aws-cli-action@v1
+      - name: Set Terraform version
+        id: tf_version
+        run: |
+          if [ "${{ inputs.terraform_version_file }}" != "NOT_SET" ]; then
+            echo "Using terraform version from file"
+            if [ ! -f "${{ inputs.terraform_version_file }}" ]; then
+              echo "Terraform version file not found"
+              exit 1
+            fi
+            echo "TF_VERSION=$(cat ${{ inputs.terraform_version_file }})" >> $GITHUB_OUTPUT
+          else
+            echo "Using terraform version from input"
+            echo "TF_VERSION=${{ inputs.terraform_version }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
       - uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: ${{ inputs.terraform_version }}
+          terraform_version: ${{ steps.tf_version.outputs.TF_VERSION }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
       # ssh agent
       - name: Setup SSH private key
