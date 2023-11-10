@@ -103,7 +103,7 @@ jobs:
     outputs:
       terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: unfor19/install-aws-cli-action@v1
       - name: Set Terraform version
         id: tf_version
