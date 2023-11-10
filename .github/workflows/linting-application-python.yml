@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python version
-        uses: actions/setup-python@v4.4.0
+        uses: actions/setup-python@v4.7.1
         with:
           python-version: ${{ inputs.python_version }}
       - name: Install pylint
