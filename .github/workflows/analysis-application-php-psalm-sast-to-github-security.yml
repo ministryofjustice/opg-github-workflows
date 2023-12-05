@@ -46,7 +46,7 @@ jobs:
         working-directory: ${{ matrix.path }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Path filter check
         uses: dorny/paths-filter@v2
         id: filter
