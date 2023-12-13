@@ -1,5 +1,5 @@
-# Return a semvar style tag based on the repos existing tags
-name: "[Data - Parse] Semvar Tag"
+# Return a semver style tag based on the repos existing tags
+name: "[Data - Parse] Semver Tag"
 
 
 on:
