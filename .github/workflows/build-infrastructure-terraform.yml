@@ -230,7 +230,7 @@ jobs:
           echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_version_file | ${{ inputs.terraform_version_file }} |"  >> $GITHUB_STEP_SUMMARY
 
-          echo "| use_ssh_private_key | ${{ uinputs.se_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| use_ssh_private_key | ${{ inputs.use_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
 
           echo "| persist_artifacts | ${{ inputs.persist_artifacts }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| artifact_directory | ${{ inputs.artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
