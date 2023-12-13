@@ -209,26 +209,26 @@ jobs:
         id: workflow_inputs_summary
         run: |
           l4mask() { printf '%s\n' ${(l[$#1][*])1: -4} }
-          wmid=$(l4mask ${{workspace_manager_aws_account_id}})
-          wiam=$(l4mask ${{workspace_manager_aws_iam_role}})
+          wmid=$(l4mask ${{ inputs.workspace_manager_aws_account_id }})
+          wiam=$(l4mask ${{ inputs.workspace_manager_aws_iam_role }})
 
           echo "### Build Config" >> $GITHUB_STEP_SUMMARY
           echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| aws_region | ${{ aws_region }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| is_ephemeral | ${{ is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_apply | ${{terraform_apply}} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_directory | ${{terraform_directory}} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_variables | ${{ if terraform_variables != "" && 'Value set' || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_version | ${{terraform_version}} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_workspace | ${{terraform_workspace}} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_wrapper | ${{terraform_wrapper}} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_version_file | ${{ terraform_version_file }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| aws_region | ${{ inputs.aws_region }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| is_ephemeral | ${{ inputs.is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_apply | ${{ inputs.terraform_apply }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_directory | ${{ inputs.terraform_directory }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_variables | ${{ inputs.terraform_variables != "" && 'Value set' || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_version | ${{ inputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_workspace | ${{ inputs.terraform_workspace }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_version_file | ${{ inputs.terraform_version_file }} |"  >> $GITHUB_STEP_SUMMARY
 
-          echo "| use_ssh_private_key | ${{ use_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| use_ssh_private_key | ${{ uinputs.se_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
 
-          echo "| persist_artifacts | ${{ persist_artifacts }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| artifact_directory | ${{ artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| persist_artifacts | ${{ inputs.persist_artifacts }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| artifact_directory | ${{ inputs.artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
 
-          echo "| workspace_manager_aws_account_id | ${{ if workspace_manager_aws_account_id != "" && ${wmid} || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| workspace_manager_aws_iam_role | ${{ if workspace_manager_aws_iam_role != "" && ${wiam} || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| workspace_manager_protection_duration | ${{workspace_manager_protection_duration}} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| workspace_manager_aws_account_id | ${{ inputs.workspace_manager_aws_account_id != "" && ${wmid} || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| workspace_manager_aws_iam_role | ${{ inputs.workspace_manager_aws_iam_role != "" && ${wiam} || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| workspace_manager_protection_duration | ${{ inputs.workspace_manager_protection_duration }} |"  >> $GITHUB_STEP_SUMMARY
