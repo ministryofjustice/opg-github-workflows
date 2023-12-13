@@ -53,9 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [create_tags]
     steps:
-      - name: Summary
-        id: Summary
-        run: |
+      - run: |
           echo "### Semver Information" >> $GITHUB_STEP_SUMMARY
           echo "#### Inputs" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
