@@ -68,8 +68,24 @@ jobs:
           echo "raw_branch=${raw_branch}" >> $GITHUB_OUTPUT
           echo "parsed_branch=${parsed_branch}" >> $GITHUB_OUTPUT
           echo "alphanumeric_branch=${alphanumeric_branch}" >> $GITHUB_OUTPUT
-
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
           echo BRANCH_NAME=${{ steps.parse.outputs.parsed_branch }} >> $GITHUB_ENV
+  github_summary:
+    name: 'Output data to Github Summary'
+    runs-on: ubuntu-latest
+    needs: [extract]
+    steps:
+      - run: |
+          echo "### Branch Information" >> $GITHUB_STEP_SUMMARY
+          echo "#### Inputs" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| push_to_github_env | ${{ inputs.push_to_github_env }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "#### Outputs" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| raw_branch | ${{ needs.extract.outputs.raw_branch }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| parsed_branch | ${{ needs.extract.outputs.parsed_branch }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| alphanumeric_branch | ${{ needs.extract.outputs.alphanumeric_branch }} |"  >> $GITHUB_STEP_SUMMARY
