@@ -37,6 +37,7 @@ jobs:
           INITIAL_VERSION: 0.0.1
           DEFAULT_BUMP: minor
           PRERELEASE_SUFFIX: ${{ inputs.branch_name }}
+          PRERELEASE: ${{ if inputs.branch_name != inputs.release_branch && true || false }}
           RELEASE_BRANCHES: ${{ inputs.release_branch }}
           WITH_V: true
     outputs:
