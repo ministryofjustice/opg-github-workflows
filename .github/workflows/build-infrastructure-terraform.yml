@@ -218,7 +218,7 @@ jobs:
           echo "| is_ephemeral | ${{ inputs.is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_apply | ${{ inputs.terraform_apply }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_directory | ${{ inputs.terraform_directory }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_variables | ${{ imputs.terraform_variables != "" && 'Value set' || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_variables | ${{ inputs.terraform_variables != "" && 'Value set' || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_version | ${{ inputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_workspace | ${{ inputs.terraform_workspace }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
