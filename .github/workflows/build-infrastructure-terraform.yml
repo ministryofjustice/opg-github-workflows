@@ -208,10 +208,6 @@ jobs:
       - name: Workflow Input Summary
         id: workflow_inputs_summary
         run: |
-          l4mask() { printf '%s\n' ${(l[$#1][*])1: -4} }
-          wmid=$(l4mask ${{ inputs.workspace_manager_aws_account_id }})
-          wiam=$(l4mask ${{ inputs.workspace_manager_aws_iam_role }})
-
           echo "### Build Config" >> $GITHUB_STEP_SUMMARY
           echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| aws_region | ${{ inputs.aws_region }} |"  >> $GITHUB_STEP_SUMMARY
@@ -236,12 +232,12 @@ jobs:
           echo "| artifact_directory | ${{ inputs.artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ inputs.workspace_manager_aws_account_id }}" != '' ]; then
-            echo "| workspace_manager_aws_account_id | ${wmid} |"  >> $GITHUB_STEP_SUMMARY
+            echo "| workspace_manager_aws_account_id | Set |"  >> $GITHUB_STEP_SUMMARY
           else
             echo "| workspace_manager_aws_account_id | Not Set |"  >> $GITHUB_STEP_SUMMARY
           fi
           if [ "${{ inputs.workspace_manager_aws_iam_role }}" != '' ]; then
-            echo "| workspace_manager_aws_iam_role | ${wiam} |"  >> $GITHUB_STEP_SUMMARY
+            echo "| workspace_manager_aws_iam_role | Set |"  >> $GITHUB_STEP_SUMMARY
           else
             echo "| workspace_manager_aws_iam_role | Not Set |"  >> $GITHUB_STEP_SUMMARY
           fi
