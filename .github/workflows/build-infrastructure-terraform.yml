@@ -210,6 +210,7 @@ jobs:
         run: |
           echo "### Build Config" >> $GITHUB_STEP_SUMMARY
           echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| aws_region | ${{ inputs.aws_region }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| is_ephemeral | ${{ inputs.is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_apply | ${{ inputs.terraform_apply }} |"  >> $GITHUB_STEP_SUMMARY
