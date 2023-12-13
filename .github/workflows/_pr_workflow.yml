@@ -39,6 +39,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.semver_tag.outputs.tag }}
-          release_name: ${{ steps.semver_tag.outputs.tag }}
+          release_name: ${{ needs.semver_tag.outputs.tag }}
           draft: true
           prerelease: true
