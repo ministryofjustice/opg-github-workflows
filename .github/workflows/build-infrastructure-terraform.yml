@@ -218,7 +218,13 @@ jobs:
           echo "| is_ephemeral | ${{ inputs.is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_apply | ${{ inputs.terraform_apply }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_directory | ${{ inputs.terraform_directory }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_variables | ${{ inputs.terraform_variables != "" && 'Value set' || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ inputs.terraform_variables }}" != '' ]; then
+            echo "| terraform_variables | Value set |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| terraform_variables | Not set |"  >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "| terraform_version | ${{ inputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_workspace | ${{ inputs.terraform_workspace }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
@@ -229,6 +235,15 @@ jobs:
           echo "| persist_artifacts | ${{ inputs.persist_artifacts }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| artifact_directory | ${{ inputs.artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
 
-          echo "| workspace_manager_aws_account_id | ${{ inputs.workspace_manager_aws_account_id != "" && ${wmid} || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| workspace_manager_aws_iam_role | ${{ inputs.workspace_manager_aws_iam_role != "" && ${wiam} || 'No value' }} |"  >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.workspace_manager_aws_account_id }}" != '' ]; then
+            echo "| workspace_manager_aws_account_id | ${wmid} |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| workspace_manager_aws_account_id | Not Set |"  >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ inputs.workspace_manager_aws_iam_role }}" != '' ]; then
+            echo "| workspace_manager_aws_iam_role | ${wiam} |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| workspace_manager_aws_iam_role | Not Set |"  >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "| workspace_manager_protection_duration | ${{ inputs.workspace_manager_protection_duration }} |"  >> $GITHUB_STEP_SUMMARY
