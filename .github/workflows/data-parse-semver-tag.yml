@@ -39,6 +39,15 @@ jobs:
           PRERELEASE_SUFFIX: ${{ inputs.branch_name }}
           RELEASE_BRANCHES: ${{ inputs.release_branch }}
           WITH_V: true
+      - name: Summary
+        run: |
+          echo "### Semver Information" >> $GITHUB_STEP_SUMMARY
+          echo "| ** Option ** | ** Output ** |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| `tag` | `${{ steps.bump_version.outputs.tag }}` |"  >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| `new_tag` | `${{ steps.bump_version.outputs.new_tag }}` |"  >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
     outputs:
       tag: ${{ steps.bump_version.outputs.tag }}
       new_tag: ${{ steps.bump_version.outputs.new_tag }}
