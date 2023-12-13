@@ -38,8 +38,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.semver_tag.outputs.tag }}
-          release_name: ${{ needs.branch_name.outputs.raw }}
+          tag_name: ${{ needs.semver_tag.outputs.new_tag }}
+          release_name: ${{ needs.semver_tag.outputs.new_tag }}
           draft: true
           prerelease: true
       - name: "Summary"
@@ -49,6 +49,7 @@ jobs:
           echo "#### Outputs" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| tag_name | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| tag_name | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| release_name | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| draft | true |"  >> $GITHUB_STEP_SUMMARY
           echo "| prerelease | true |"  >> $GITHUB_STEP_SUMMARY
