@@ -69,6 +69,14 @@ jobs:
           echo "parsed_branch=${parsed_branch}" >> $GITHUB_OUTPUT
           echo "alphanumeric_branch=${alphanumeric_branch}" >> $GITHUB_OUTPUT
 
+      - name: Summary
+        run: |
+          echo "### Branch Information" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| raw_branch | ${{ steps.parse.outputs.outputs.raw }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| parsed_branch | ${{ steps.parse.outputs.outputs.parsed }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| alphanumeric_branch | ${{ steps.parse.outputs.outputs.alphanumeric }} |"  >> $GITHUB_STEP_SUMMARY
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
