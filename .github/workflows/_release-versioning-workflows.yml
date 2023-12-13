@@ -46,6 +46,20 @@ jobs:
           echo "Raw: ${{ needs.branch_name.outputs.raw }}"
           echo "Parsed: ${{ needs.branch_name.outputs.parsed }}"
           echo "Alphanumeric: ${{ needs.branch_name.outputs.alphanumeric }}"
-          echo "== SEMVAR =="
-          echo "Tag: ${{ needs.semvar_tag.outputs.tag }}"
-          echo "New Tag: ${{ needs.semvar_tag.outputs.new_tag }}"
+          echo "== semver =="
+          echo "Tag: ${{ needs.semver_tag.outputs.tag }}"
+          echo "New Tag: ${{ needs.semver_tag.outputs.new_tag }}"
+
+          echo "### Release Information" >> $GITHUB_STEP_SUMMARY
+          echo "| ** Option ** | ** Output ** |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Raw Branch | `${{ needs.branch_name.outputs.raw }}` |"  >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Parsed Branch | `${{ needs.branch_name.outputs.parsed }}` |"  >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Alphanumeric Branch | `${{ needs.branch_name.outputs.alphanumeric }}` |"  >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Semver Tag | `${{ needs.semver_tag.outputs.tag }}` |"  >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Semver New Tag | `${{ needs.semver_tag.outputs.new_tag }}` |"  >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
