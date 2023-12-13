@@ -83,6 +83,6 @@ jobs:
           echo "### Branch Information" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| raw_branch | ${{ needs.extract.outputs.raw }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| parsed_branch | ${{ needs.extract.outputs.parsed }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| alphanumeric_branch | ${{ needs.extract.outputs.alphanumeric }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| raw_branch | ${{ needs.extract.outputs.raw_branch }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| parsed_branch | ${{ needs.extract.outputs.parsed_branch }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| alphanumeric_branch | ${{ needs.extract.outputs.alphanumeric_branch }} |"  >> $GITHUB_STEP_SUMMARY
