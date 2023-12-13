@@ -81,6 +81,11 @@ jobs:
         id: Summary
         run: |
           echo "### Branch Information" >> $GITHUB_STEP_SUMMARY
+          echo "#### Inputs" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| push_to_github_env | ${{ inputs.push_to_github_env }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "#### Outputs" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| raw_branch | ${{ needs.extract.outputs.raw_branch }} |"  >> $GITHUB_STEP_SUMMARY
