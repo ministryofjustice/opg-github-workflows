@@ -42,3 +42,13 @@ jobs:
           release_name: ${{ needs.branch_name.outputs.raw }}
           draft: true
           prerelease: true
+      - name: "Summary"
+        id: summary
+        run: |
+          echo "### Release Information" >> $GITHUB_STEP_SUMMARY
+          echo "#### Outputs" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| tag_name | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| draft | true |"  >> $GITHUB_STEP_SUMMARY
+          echo "| prerelease | true |"  >> $GITHUB_STEP_SUMMARY
