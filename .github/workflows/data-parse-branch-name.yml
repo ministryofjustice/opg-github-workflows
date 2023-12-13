@@ -72,7 +72,7 @@ jobs:
       - name: Summary
         run: |
           echo "### Branch Information" >> $GITHUB_STEP_SUMMARY
-          echo "| Option | Output |" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| raw_branch | ${{ steps.parse.outputs.outputs.raw }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| parsed_branch | ${{ steps.parse.outputs.outputs.parsed }} |"  >> $GITHUB_STEP_SUMMARY
