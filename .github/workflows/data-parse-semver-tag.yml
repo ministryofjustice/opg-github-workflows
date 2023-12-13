@@ -11,6 +11,9 @@ on:
       new_tag:
         description: "New Tag"
         value: ${{ jobs.create_tags.outputs.new_tag }}
+      prerelease:
+        description: "Falg to show if this was created as a prerelease"
+        value: ${{ jobs.create_tags.outputs.prerelease }}
     inputs:
       branch_name:
         type: string
@@ -43,6 +46,7 @@ jobs:
     outputs:
       tag: ${{ steps.bump_version.outputs.tag }}
       new_tag: ${{ steps.bump_version.outputs.new_tag }}
+      prerelease: ${{ inputs.branch_name != inputs.release_branch && true || false }}
 
   github_summary:
     name: 'Output data to Github Summary'
@@ -63,3 +67,4 @@ jobs:
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| tag | ${{ needs.create_tags.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| new_tag | ${{ needs.create_tags.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| prerelease | ${{ needs.create_tags.outputs.prerelease }} |"  >> $GITHUB_STEP_SUMMARY
