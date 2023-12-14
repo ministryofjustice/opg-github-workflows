@@ -55,49 +55,21 @@ jobs:
       alphanumeric_branch: ${{ steps.parse.outputs.safe }}
       trimmed_branch: ${{ steps.parse.outputs.trimmed }}
     steps:
-      - uses: actions/checkout@v4
       - id: branch_setup
         run: |
-          echo "GITHUB_REF: ${GITHUB_REF}"
-          echo "GITHUB HEAD REF: ${GITHUB_HEAD_REF}"
           branch=${GITHUB_HEAD_REF}
           if [ "${branch}" == "" ]; then
             branch="main"
           fi
           echo "branch=${branch}" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
       - id: parse
         name: Parse branch name
         uses: ./.github/actions/safe-strings
         with:
           original: ${{steps.branch_setup.outputs.branch}}
-          length: 5
       - run: |
           echo "safe: [ ${{ steps.parse.outputs.safe}} ]"
-      # - id: parse
-      #   name: Parse branch name
-      #   run: |
-
-      #     branch=${GITHUB_HEAD_REF}
-
-      #     if [ "${branch}" == "" ]; then
-      #       raw_branch="main"
-      #       parsed_branch="main"
-      #       alphanumeric_branch="main"
-      #     else
-      #       raw_branch=${branch}
-      #       parsed_branch=${branch//-}
-      #       parsed_branch=${parsed_branch//_}
-      #       parsed_branch=${parsed_branch//\/}
-      #       alphanumeric_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
-      #     fi
-
-      #     echo "RAW BRANCH: ${raw_branch}"
-      #     echo "PARSED BRANCH: ${parsed_branch}"
-      #     echo "ALPHANUMERIC BRANCH: ${alphanumeric_branch}"
-
-      #     echo "raw_branch=${raw_branch}" >> $GITHUB_OUTPUT
-      #     echo "parsed_branch=${parsed_branch}" >> $GITHUB_OUTPUT
-      #     echo "alphanumeric_branch=${alphanumeric_branch}" >> $GITHUB_OUTPUT
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
