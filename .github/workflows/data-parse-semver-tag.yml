@@ -43,12 +43,13 @@ jobs:
           echo "| release_branch | ${{ inputs.release_branch }} |"  >> $GITHUB_STEP_SUMMARY
 
   create_tags:
+    name: "Create tags"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
-      - name: Truncate
+      - name: Truncate branch name
         id: truncate
         run: |
           branch_name=${{ inputs.branch_name }}
