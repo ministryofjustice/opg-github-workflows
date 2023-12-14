@@ -34,6 +34,21 @@ permissions:
 
 jobs:
 
+  config_summary:
+    name: "Config"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Psalm Config" >> $GITHUB_STEP_SUMMARY
+          echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| directories | ${{ inputs.directories }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| php_version | ${{ inputs.php_version }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| composer_command | ${{ inputs.composer_command }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| job_strategy_fail_fast | ${{ inputs.job_strategy_fail_fast }} |"  >> $GITHUB_STEP_SUMMARY
+
   analysis_application_psalm_sast_to_github_security:
     name: Run Psalm and upload results to github security
     runs-on: ubuntu-latest
