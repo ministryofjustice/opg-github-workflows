@@ -55,12 +55,22 @@ jobs:
       terraform_version: ${{ steps.version.outputs.terraform_version}}
     steps:
       - uses: actions/checkout@v4
-      - name: Terraform version
-        id: version
-        uses: ./.github/actions/data-parse-terraform-version.yml
-        with:
-          terraform_directory: ${{ inputs.terraform_directory }}
-          terraform_versions_file: ${{ inputs.terraform_versions_file }}
+      - id: check_file_exists
+        working-directory: ${{ inputs.terraform_directory }}
+        name: Check [${{ inputs.terraform_versions_file }}] check_file_exists
+        run: |
+          if [ ! -f ${{ inputs.terraform_versions_file }} ]; then
+            echo "terraform_version=" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      - id: version
+        working-directory: ${{ inputs.terraform_directory }}
+        name: Get terraform version
+        run: |
+          if [ -f ${{ inputs.terraform_versions_file }} ]; then
+            terraform_version=$(cat ${{ inputs.terraform_versions_file }} | sed -r -n 's/.*required_version.*"(.*)"$/\1/p' )
+            echo "terraform_version=${terraform_version}" >> $GITHUB_OUTPUT
+          fi
 
   results:
     name: "Results"
