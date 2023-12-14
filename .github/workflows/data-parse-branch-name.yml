@@ -62,6 +62,7 @@ jobs:
             branch="main"
           fi
           echo "branch=${branch}" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
       - id: parse
         name: Parse branch name
         uses: ./.github/actions/safe-strings
