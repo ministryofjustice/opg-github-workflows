@@ -62,10 +62,9 @@ jobs:
             branch="main"
           fi
           echo "branch=${branch}" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v4
       - id: parse
         name: Parse branch name
-        uses: ./.github/actions/safe-strings
+        uses: ministryofjustice/opg-github-workflows/.github/actions/safe-strings.yml@v1.37.0-compositeactions.1
         with:
           original: ${{steps.branch_setup.outputs.branch}}
       - run: |
