@@ -41,12 +41,13 @@ jobs:
           prerelease: false
           generateReleaseNotes: true
 
-  end:
-    name: 'End of workflow'
+  summary:
+    if: always()
+    name: Release
     runs-on: 'ubuntu-latest'
     needs: [branch_name, semver_tag, create_release]
     steps:
-      - name: "Output data"
+      - name: "Summary"
         run: |
           echo "### Release Information" >> $GITHUB_STEP_SUMMARY
           echo "| Segment | Variable | Value |" >> $GITHUB_STEP_SUMMARY
@@ -61,3 +62,7 @@ jobs:
           echo "| Release | Pre-release | false |" >> $GITHUB_STEP_SUMMARY
           echo "| Release | Notes | true |" >> $GITHUB_STEP_SUMMARY
           echo "| Release | URL | [${{ needs.create_release.outputs.id }}](${{ needs.create_release.outputs.html_url }}) |"  >> $GITHUB_STEP_SUMMARY
+  end:
+    name: 'End of release workflow'
+    runs-on: 'ubuntu-latest'
+    needs: [branch_name, semver_tag, create_release, summary]
