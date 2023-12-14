@@ -55,6 +55,7 @@ jobs:
       alphanumeric_branch: ${{ steps.parse.outputs.safe }}
       trimmed_branch: ${{ steps.parse.outputs.trimmed }}
     steps:
+      - uses: actions/checkout@v4
       - id: branch_setup
         run: |
           echo "GITHUB_REF: ${GITHUB_REF}"
