@@ -53,3 +53,16 @@ jobs:
 
           echo "workspace_name=${workspace_name}" >> $GITHUB_OUTPUT
           echo "WORKSPACE: ${workspace_name}"
+
+  results:
+    name: 'Results'
+    runs-on: ubuntu-latest
+    needs: [generate_workspace_name]
+    steps:
+      - name: 'Summary'
+        if: always()
+        run: |
+          echo "### Workspace Name Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| workspace_name | ${{ needs.generate_workspace_name.outputs.workspace_name }} |"  >> $GITHUB_STEP_SUMMARY

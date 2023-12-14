@@ -22,7 +22,7 @@ jobs:
   # generate semver tag
   semver_tag:
     needs: [lint_yaml, branch_name]
-    name: "Tag Name (${{ needs.branch_name.outputs.parsed }})"
+    name: "Tag Name [${{ needs.branch_name.outputs.parsed }}]"
     uses: ./.github/workflows/data-parse-semver-tag.yml
     with:
       branch_name: ${{ needs.branch_name.outputs.parsed }}
@@ -34,22 +34,23 @@ jobs:
     needs: [semver_tag]
     steps:
       - id: create_release
-        uses: actions/create-release@v1
+        uses: ncipollo/release-action@v1.13.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.semver_tag.outputs.new_tag }}
-          release_name: ${{ needs.semver_tag.outputs.new_tag }}
+          tag: ${{ needs.semver_tag.outputs.new_tag }}
+          name: ${{ needs.semver_tag.outputs.new_tag }}
           draft: true
           prerelease: true
+          generateReleaseNotes: true
       - name: "Summary"
         id: summary
         run: |
-          echo "### Release Information" >> $GITHUB_STEP_SUMMARY
-          echo "#### Outputs" >> $GITHUB_STEP_SUMMARY
+          echo "### PR Information" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| tag_name | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| release_name | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| draft | true |"  >> $GITHUB_STEP_SUMMARY
           echo "| prerelease | true |"  >> $GITHUB_STEP_SUMMARY
+          echo "| release url | ${{ steps.create_release.outputs.html_url }} |"  >> $GITHUB_STEP_SUMMARY
