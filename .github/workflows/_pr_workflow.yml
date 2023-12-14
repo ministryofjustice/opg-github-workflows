@@ -34,6 +34,7 @@ jobs:
     needs: [semver_tag]
     steps:
       - id: create_release
+        name: "Create release"
         uses: ncipollo/release-action@v1.13.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

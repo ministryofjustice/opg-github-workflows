@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
 
+
 jobs:
   # generate branch name
   branch_name:
@@ -24,8 +25,12 @@ jobs:
     name: Create Release
     runs-on: 'ubuntu-latest'
     needs: [semver_tag]
+    outputs:
+      id: ${{ steps.create_release.outputs.id }}
+      html_url: ${{ steps.create_release.outputs.html_url }}
     steps:
       - id: create_release
+        name: Create release
         uses: ncipollo/release-action@v1.13.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,14 +48,6 @@ jobs:
     steps:
       - name: "Output data"
         run: |
-          echo "== BRANCH =="
-          echo "Raw: ${{ needs.branch_name.outputs.raw }}"
-          echo "Parsed: ${{ needs.branch_name.outputs.parsed }}"
-          echo "Alphanumeric: ${{ needs.branch_name.outputs.alphanumeric }}"
-          echo "== semver =="
-          echo "Tag: ${{ needs.semver_tag.outputs.tag }}"
-          echo "New Tag: ${{ needs.semver_tag.outputs.new_tag }}"
-
           echo "### Release Information" >> $GITHUB_STEP_SUMMARY
           echo "| Segment | Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- | --- |"  >> $GITHUB_STEP_SUMMARY
@@ -60,3 +57,4 @@ jobs:
           echo "| Semver | Tag | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | New Tag | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Pre-release | ${{ needs.semver_tag.outputs.prerelease }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Release | URL | [${{ needs.create_release.outputs.id }}](${{ needs.create_release.outputs.html_url }}) |"  >> $GITHUB_STEP_SUMMARY
