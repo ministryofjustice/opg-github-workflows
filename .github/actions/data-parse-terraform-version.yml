@@ -9,7 +9,7 @@ inputs:
   terraform_versions_file:
     type: string
     description: "Name of file that contains the required_version config is stored. (Default `./versions.tf`)"
-    required: true
+    default: "./versions.tf"
 outputs:
   error:
     description: "Any returned error messages."
