@@ -32,6 +32,20 @@ permissions:
   statuses: none
 
 jobs:
+  config_summary:
+    name: "Config"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        if: always()
+        run: |
+          echo "### TFSec Pull Request Config" >> $GITHUB_STEP_SUMMARY
+          echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_path | ${{ inputs.terraform_path }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| soft_fail | ${{ inputs.soft_fail }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| job_strategy_fail_fast | ${{ inputs.job_strategy_fail_fast }} |"  >> $GITHUB_STEP_SUMMARY
+
   tfsec_pr_commenter:
     name: TFSec static analysis pull request feedback
     runs-on: ubuntu-latest
