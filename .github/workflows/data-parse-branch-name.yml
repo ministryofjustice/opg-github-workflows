@@ -50,40 +50,29 @@ jobs:
     name: 'Use github data to generate a clean branch name'
     runs-on: ubuntu-latest
     outputs:
-      raw_branch: ${{ steps.parse.outputs.raw_branch }}
-      parsed_branch: ${{ steps.parse.outputs.parsed_branch }}
-      alphanumeric_branch: ${{ steps.parse.outputs.alphanumeric_branch }}
+      raw_branch: ${{ steps.parse.outputs.original }}
+      parsed_branch: ${{ steps.parse.outputs.safe }}
+      alphanumeric_branch: ${{ steps.parse.outputs.safe }}
+      trimmed_branch: ${{ steps.parse.outputs.trimmed }}
     steps:
+      - id: branch_setup
+        run: |
+          branch=${GITHUB_HEAD_REF}
+          if [ "${branch}" == "" ]; then
+            branch="main"
+          fi
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
       - id: parse
         name: Parse branch name
-        run: |
-
-          branch=${GITHUB_HEAD_REF}
-
-          if [ "${branch}" == "" ]; then
-            raw_branch="main"
-            parsed_branch="main"
-            alphanumeric_branch="main"
-          else
-            raw_branch=${branch}
-            parsed_branch=${branch//-}
-            parsed_branch=${parsed_branch//_}
-            parsed_branch=${parsed_branch//\/}
-            alphanumeric_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
-          fi
-          echo "GITHUB_REF: ${GITHUB_REF}"
-          echo "GITHUB HEAD REF: ${GITHUB_HEAD_REF}"
-          echo "RAW BRANCH: ${raw_branch}"
-          echo "PARSED BRANCH: ${parsed_branch}"
-          echo "ALPHANUMERIC BRANCH: ${alphanumeric_branch}"
-
-          echo "raw_branch=${raw_branch}" >> $GITHUB_OUTPUT
-          echo "parsed_branch=${parsed_branch}" >> $GITHUB_OUTPUT
-          echo "alphanumeric_branch=${alphanumeric_branch}" >> $GITHUB_OUTPUT
+        uses: ministryofjustice/opg-github-workflows/.github/actions/safe-strings@comp-test
+        with:
+          original: ${{steps.branch_setup.outputs.branch}}
+      - run: |
+          echo "safe: [ ${{ steps.parse.outputs.safe}} ]"
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
-          echo BRANCH_NAME=${{ steps.parse.outputs.parsed_branch }} >> $GITHUB_ENV
+          echo BRANCH_NAME=${{ steps.parse.outputs.safe }} >> $GITHUB_ENV
 
   results:
     name: 'Results'
@@ -99,3 +88,4 @@ jobs:
           echo "| raw_branch | ${{ needs.extract.outputs.raw_branch }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| parsed_branch | ${{ needs.extract.outputs.parsed_branch }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| alphanumeric_branch | ${{ needs.extract.outputs.alphanumeric_branch }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| trimmed_branch | ${{ needs.extract.outputs.trimmed_branch }} |"  >> $GITHUB_STEP_SUMMARY
