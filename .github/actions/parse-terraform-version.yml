@@ -1,5 +1,5 @@
 # Find Terraform Version from the versions.tf file
-name: "[Data - Parse] Terraform Version"
+name: "Parse Terraform Version From File"
 description: "Determine terraform version to use from version file"
 inputs:
   terraform_directory:
