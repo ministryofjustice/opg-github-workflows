@@ -36,7 +36,7 @@ defaults:
 
 jobs:
   discover_version_semver_range:
-    name: "Find [${{ inputs.terraform_version_file }}], parse out the required_version data."
+    name: "Find [${{ inputs.terraform_versions_file }}], parse out the required_version data."
     runs-on: ubuntu-latest
     outputs:
       terraform_version: ${{ steps.version.outputs.terraform_version}}
@@ -44,9 +44,9 @@ jobs:
       - uses: actions/checkout@v4
       - id: check_file_exists
         working-directory: ${{ inputs.terraform_directory }}
-        name: Check [${{ inputs.terraform_version_file }}] check_file_exists
+        name: Check [${{ inputs.terraform_versions_file }}] check_file_exists
         run: |
-          if [ ! -f ${{ inputs.terraform_version_file }} ]; then
+          if [ ! -f ${{ inputs.terraform_versions_file }} ]; then
             echo "terraform_version=" >> $GITHUB_OUTPUT
             exit 1
           fi
@@ -54,8 +54,8 @@ jobs:
         working-directory: ${{ inputs.terraform_directory }}
         name: Get terraform version
         run: |
-          if [ -f ${{ inputs.terraform_version_file }} ]; then
-            terraform_version=$(cat ${{ inputs.terraform_version_file }} | sed -r -n 's/.*required_version.*"(.*)"$/\1/p' )
+          if [ -f ${{ inputs.terraform_versions_file }} ]; then
+            terraform_version=$(cat ${{ inputs.terraform_versions_file }} | sed -r -n 's/.*required_version.*"(.*)"$/\1/p' )
             echo "terraform_version=${terraform_version}" >> $GITHUB_OUTPUT
           fi
 
