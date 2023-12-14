@@ -67,6 +67,6 @@ jobs:
         run: psalm --output-format=github --taint-analysis --report=psalm-results.sarif
       - name: Upload Security Analysis results to GitHub
         if: steps.filter.outputs.check == 'true'
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ matrix.path }}/psalm-results.sarif
