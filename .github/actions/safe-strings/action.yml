@@ -31,6 +31,9 @@ runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.action_repository }}
+        ref: ${{ github.action_ref }}
     - run: echo "${{ github.action_path }}" >> $GITHUB_PATH
       shell: bash
     - id: make_safe
