@@ -64,7 +64,7 @@ jobs:
           echo "branch=${branch}" >> $GITHUB_OUTPUT
       - id: parse
         name: Parse branch name
-        uses: ministryofjustice/opg-github-workflows/.github/actions/safe-strings.yml@comp-test
+        uses: ministryofjustice/opg-github-workflows/.github/actions/safe-strings@comp-test
         with:
           original: ${{steps.branch_setup.outputs.branch}}
       - run: |
