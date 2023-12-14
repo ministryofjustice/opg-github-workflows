@@ -42,15 +42,15 @@ jobs:
           name: ${{ needs.semver_tag.outputs.new_tag }}
           draft: true
           prerelease: true
-          generateReleaseNotes: false
+          generateReleaseNotes: true
       - name: "Summary"
         id: summary
         run: |
-          echo "### Release Information" >> $GITHUB_STEP_SUMMARY
-          echo "#### Outputs" >> $GITHUB_STEP_SUMMARY
+          echo "### PR Information" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| tag_name | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| release_name | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| draft | true |"  >> $GITHUB_STEP_SUMMARY
           echo "| prerelease | true |"  >> $GITHUB_STEP_SUMMARY
+          echo "| release url | ${{ steps.create_release.outputs.html_url }} |"  >> $GITHUB_STEP_SUMMARY
