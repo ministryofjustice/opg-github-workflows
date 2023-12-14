@@ -2,16 +2,13 @@ name: "Safe string generation"
 description: "Convert a string into shortern and remove unsafe characters"
 inputs:
   original:
-    type: string
     description: "Original string (such as branch name) to make safe for tag usage etc"
     required: true
   suffix:
-    type: string
     description: "Directory where terraform will be run from. Looks for versions.tf file in this path."
     default: ""
   length:
     description: "If set, trim the string to this length"
-    type: number
 
 outputs:
   original:
@@ -30,15 +27,11 @@ outputs:
     description: "Trimmed version of the `safe` output string"
     value: ${{ steps.make_safe.outputs.trimmed }}
 
-
-defaults:
-  run:
-    shell: bash
-
 runs:
   using: "composite"
   steps:
     - id: make_safe
+      shell: bash
       run: |
         str=${{inputs.original}}
         suffix=${{inputs.suffix}}

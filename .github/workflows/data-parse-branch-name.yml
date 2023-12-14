@@ -66,7 +66,7 @@ jobs:
           echo "branch=${branch}" >> $GITHUB_OUTPUT
       - id: parse
         name: Parse branch name
-        uses: ./.github/actions/safe-strings.yml
+        uses: ./.github/actions/safe-strings
         with:
           original: ${{steps.branch_setup.outputs.branch}}
           length: 5
