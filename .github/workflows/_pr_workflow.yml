@@ -28,8 +28,8 @@ jobs:
       branch_name: ${{ needs.branch_name.outputs.parsed }}
     secrets: inherit
   # Generate a release
-  create_draft_release:
-    name: Create Release
+  create_release:
+    name: "Create Release (Draft)"
     runs-on: 'ubuntu-latest'
     needs: [semver_tag]
     steps:
@@ -49,7 +49,7 @@ jobs:
     if: always()
     name: PR
     runs-on: 'ubuntu-latest'
-    needs: [branch_name, semver_tag, create_draft_release]
+    needs: [branch_name, semver_tag, create_release]
     steps:
       - id: summary
         name: "Summary"
@@ -71,7 +71,7 @@ jobs:
   end:
     name: 'End of PR workflow'
     runs-on: 'ubuntu-latest'
-    needs: [branch_name, semver_tag, create_draft_release, summary]
+    needs: [branch_name, semver_tag, create_release, summary]
     steps:
       - id: end
         name: End
