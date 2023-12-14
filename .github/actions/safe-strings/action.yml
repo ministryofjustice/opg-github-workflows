@@ -30,31 +30,8 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - run: echo "${{ github.action_path }}" >> $GITHUB_PATH
+      shell: bash
     - id: make_safe
       shell: bash
-      run: |
-        str="${{inputs.original}}"
-        suffix="${{inputs.suffix}}"
-        max_len="${{inputs.length}}"
-        suffix_len="${#suffix}"
-
-        parsed=$(echo ${str} | tr '[:upper:]' '[:lower:]')
-        safe=$( echo "${parsed}" | tr -cd '[:alnum:]')
-        trimmed=""
-
-        if [ ! -n "${{ inputs.length }}" ]; then
-          sub_len="$((max_len - suffix_len))"
-          trimmed=${safe:0:$sub_len}${suffix}
-        fi
-
-        echo "original=${str}"
-        echo "suffix=${suffix}"
-        echo "length=${max_len}"
-        echo "safe=${safe}"
-        echo "trimmed=${trimmed}"
-
-        echo "original=${str}" >> $GITHUB_OUTPUT
-        echo "suffix=${suffix}" >> $GITHUB_OUTPUT
-        echo "length=${max_len}" >> $GITHUB_OUTPUT
-        echo "safe=${safe}" >> $GITHUB_OUTPUT
-        echo "trimmed=${trimmed}" >> $GITHUB_OUTPUT
+      run: safe.sh "${{inputs.original}}" "${{inputs.suffix}}" "${{inputs.length}}"
