@@ -96,10 +96,54 @@ on:
         required: false
 
 jobs:
+  config:
+    name: "Workflow Config"
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: "Summary"
+        run: |
+          echo "### Config" >> $GITHUB_STEP_SUMMARY
+          echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| aws_region | ${{ inputs.aws_region }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| is_ephemeral | ${{ inputs.is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_apply | ${{ inputs.terraform_apply }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_directory | ${{ inputs.terraform_directory }} |"  >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "${{ inputs.terraform_variables }}" ]; then
+            echo "| terraform_variables | SET |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| terraform_variables | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "| terraform_version | ${{ inputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_workspace | ${{ inputs.terraform_workspace }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_version_file | ${{ inputs.terraform_version_file }} |"  >> $GITHUB_STEP_SUMMARY
+
+          echo "| use_ssh_private_key | ${{ inputs.use_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
+
+          echo "| persist_artifacts | ${{ inputs.persist_artifacts }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| artifact_directory | ${{ inputs.artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "${{ inputs.workspace_manager_aws_account_id }}" ]; then
+            echo "| workspace_manager_aws_account_id | SET |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| workspace_manager_aws_account_id | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -n "${{ inputs.workspace_manager_aws_iam_role }}" ]; then
+            echo "| workspace_manager_aws_iam_role | SET |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| workspace_manager_aws_iam_role | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "| workspace_manager_protection_duration | ${{ inputs.workspace_manager_protection_duration }} |"  >> $GITHUB_STEP_SUMMARY
+
   terraform_plan_and_apply:
     name: "[Build - Infrastructure] Terraform Plan And Apply"
     runs-on: ubuntu-latest
-
+    needs: [config]
     outputs:
       terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
     steps:
@@ -204,43 +248,3 @@ jobs:
           terraform output -json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         working-directory: ${{ inputs.terraform_directory }}
-
-      - name: Workflow Input Summary
-        id: workflow_inputs_summary
-        run: |
-          echo "### Build Config" >> $GITHUB_STEP_SUMMARY
-          echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| aws_region | ${{ inputs.aws_region }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| is_ephemeral | ${{ inputs.is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_apply | ${{ inputs.terraform_apply }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_directory | ${{ inputs.terraform_directory }} |"  >> $GITHUB_STEP_SUMMARY
-
-          if [ -n "${{ inputs.terraform_variables }}" ]; then
-            echo "| terraform_variables | SET |"  >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| terraform_variables | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "| terraform_version | ${{ inputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_workspace | ${{ inputs.terraform_workspace }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_version_file | ${{ inputs.terraform_version_file }} |"  >> $GITHUB_STEP_SUMMARY
-
-          echo "| use_ssh_private_key | ${{ inputs.use_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
-
-          echo "| persist_artifacts | ${{ inputs.persist_artifacts }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| artifact_directory | ${{ inputs.artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
-
-          if [ -n "${{ inputs.workspace_manager_aws_account_id }}" ]; then
-            echo "| workspace_manager_aws_account_id | SET |"  >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| workspace_manager_aws_account_id | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
-          fi
-          if [ -n "${{ inputs.workspace_manager_aws_iam_role }}" ]; then
-            echo "| workspace_manager_aws_iam_role | SET |"  >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| workspace_manager_aws_iam_role | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "| workspace_manager_protection_duration | ${{ inputs.workspace_manager_protection_duration }} |"  >> $GITHUB_STEP_SUMMARY
