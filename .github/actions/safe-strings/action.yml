@@ -22,7 +22,7 @@ outputs:
     value: ${{ steps.make_safe.outputs.length }}
   safe:
     description: "Alphanumeric, lowercase, full length version of the original string."
-    value: ${{ steps.make_safe.outputs.alphanumeric }}
+    value: ${{ steps.make_safe.outputs.safe }}
   trimmed:
     description: "Trimmed version of the `safe` output string"
     value: ${{ steps.make_safe.outputs.trimmed }}
@@ -34,4 +34,4 @@ runs:
       shell: bash
     - id: make_safe
       shell: bash
-      run: safe.sh "${{inputs.original}}" "${{inputs.suffix}}" "${{inputs.length}}"
+      run: safe-string.sh "${{inputs.original}}" "${{inputs.suffix}}" "${{inputs.length}}"
