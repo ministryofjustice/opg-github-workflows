@@ -25,6 +25,20 @@ permissions:
   statuses: none
 
 jobs:
+
+  config_summary:
+    name: "Config"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        if: always()
+        run: |
+          echo "### CodeQL Config" >> $GITHUB_STEP_SUMMARY
+          echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| application_languages | ${{ inputs.application_languages }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| job_strategy_fail_fast | ${{ inputs.job_strategy_fail_fast }} |"  >> $GITHUB_STEP_SUMMARY
+
   analysis_application_codeql_sast_to_github_security:
     name: Run CodeQL against application code
     runs-on: ubuntu-latest
