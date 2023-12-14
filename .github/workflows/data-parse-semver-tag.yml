@@ -5,6 +5,9 @@ name: "[Data - Parse] Semver Tag"
 on:
   workflow_call:
     outputs:
+      truncated_branch_name:
+        description: "Truncated version of inputs.branch_name"
+        value: ${{ jobs.create_tags.outputs.truncated_branch_name }}
       tag:
         description: "Version Tag"
         value: ${{ jobs.create_tags.outputs.tag }}
@@ -12,12 +15,12 @@ on:
         description: "New Tag"
         value: ${{ jobs.create_tags.outputs.new_tag }}
       prerelease:
-        description: "Falg to show if this was created as a prerelease"
+        description: "Flag to show if this was created as a pre-release"
         value: ${{ jobs.create_tags.outputs.prerelease }}
     inputs:
       branch_name:
         type: string
-        description: "Current Git branch name"
+        description: "Current branch name. Used for trag creation, but trucated to 16 characters."
         required: true
       release_branch:
         type: string
@@ -26,12 +29,32 @@ on:
         required: false
 
 jobs:
+  config_summary:
+    name: "Config"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Semver Config" >> $GITHUB_STEP_SUMMARY
+          echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| branch_name | ${{ inputs.branch_name }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| release_branch | ${{ inputs.release_branch }} |"  >> $GITHUB_STEP_SUMMARY
+
   create_tags:
+    name: "Create tags"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+      - name: Truncate branch name
+        id: truncate
+        run: |
+          branch_name=${{ inputs.branch_name }}
+          truncated=${branch_name:0:16}
+          echo "truncated_branch_name=${truncated}" >> $GITHUB_OUTPUT
       - name: Bump version
         id: bump_version
         uses: anothrNick/github-tag-action@1.67.0
@@ -39,30 +62,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INITIAL_VERSION: 0.0.1
           DEFAULT_BUMP: minor
-          PRERELEASE_SUFFIX: ${{ inputs.branch_name }}
+          PRERELEASE_SUFFIX: ${{ steps.truncate.outputs.truncated_branch_name }}
           PRERELEASE: ${{ inputs.branch_name != inputs.release_branch && true || false }}
           RELEASE_BRANCHES: ${{ inputs.release_branch }}
           WITH_V: true
     outputs:
+      truncated_branch_name: ${{ steps.truncate.outputs.truncated_branch_name }}
       tag: ${{ steps.bump_version.outputs.tag }}
       new_tag: ${{ steps.bump_version.outputs.new_tag }}
       prerelease: ${{ inputs.branch_name != inputs.release_branch && true || false }}
 
-  github_summary:
-    name: 'Output data to Github Summary'
+  results:
+    name: 'Results'
     runs-on: ubuntu-latest
     needs: [create_tags]
     steps:
-      - run: |
-          echo "### Semver Information" >> $GITHUB_STEP_SUMMARY
-          echo "#### Inputs" >> $GITHUB_STEP_SUMMARY
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Semver Results" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| branch_name | ${{ inputs.branch_name }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| release_branch | ${{ inputs.release_branch }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "#### Outputs" >> $GITHUB_STEP_SUMMARY
-          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| truncated_branch_name | ${{ needs.create_tags.outputs.truncated_branch_name }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| tag | ${{ needs.create_tags.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| new_tag | ${{ needs.create_tags.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| prerelease | ${{ needs.create_tags.outputs.prerelease }} |"  >> $GITHUB_STEP_SUMMARY
