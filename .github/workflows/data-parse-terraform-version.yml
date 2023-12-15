@@ -65,7 +65,7 @@ jobs:
   results:
     name: "Results"
     runs-on: ubuntu-latest
-    needs: [discover_version_semver_range]
+    needs: [find_version]
     steps:
       - name: Summary
         if: always()
