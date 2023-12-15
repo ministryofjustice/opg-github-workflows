@@ -21,24 +21,6 @@ jobs:
     uses: ./.github/workflows/data-parse-branch-name.yml
     secrets: inherit
 
-  # workspace name - not used, but added for testing
-  workspace_name:
-    needs: [lint_yaml]
-    name: "Workspace name"
-    uses: ./.github/workflows/data-parse-workspace.yml
-    secrets: inherit
-
-  # terraform version parsing - not used, added for testing
-  terraform_version_test:
-    needs: [lint_yaml]
-    name: "Test terraform version lookup"
-    uses: ./.github/workflows/data-parse-terraform-version.yml
-    with:
-      terraform_directory: "./"
-      terraform_versions_file: "./test_terraform_versions"
-    secrets: inherit
-
-
   # generate semver tag
   semver_tag:
     needs: [lint_yaml, branch_name]
@@ -82,7 +64,7 @@ jobs:
           echo "| --- | --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| Branch | Original | ${{ needs.branch_name.outputs.original }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Branch | Safe | ${{ needs.branch_name.outputs.safe }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | Trimmed | ${{ needs.branch_name.outputs.trimmed }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | Full Length | ${{ needs.branch_name.outputs.full_length }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Tag | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | New Tag | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Pre-release | ${{ needs.semver_tag.outputs.prerelease }} |"  >> $GITHUB_STEP_SUMMARY
