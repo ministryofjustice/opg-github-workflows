@@ -13,7 +13,7 @@ on:
     outputs:
       original:
         description: The original branch name with output any modification.'
-        value: ${{ jobs.extract.outputs.orginal }}
+        value: ${{ jobs.extract.outputs.original }}
       safe:
         description: 'A lowercase version thats safe for tagging and similar containing only alphanumeric characters.'
         value: ${{ jobs.extract.outputs.safe }}
@@ -67,12 +67,10 @@ jobs:
         with:
           original: ${{steps.branch_setup.outputs.branch}}
           length: 12
-      - run: |
-          echo "safe: [ ${{ steps.parse.outputs.safe}} ]"
-      - name: Push to GITHUB_ENV
-        if: inputs.push_to_github_env
-        run: |
-          echo BRANCH_NAME=${{ steps.parse.outputs.safe }} >> $GITHUB_ENV
+      # - name: Push to GITHUB_ENV
+      #   if: inputs.push_to_github_env
+      #   run: |
+      #     echo BRANCH_NAME=${{ steps.parse.outputs.safe }} >> $GITHUB_ENV
 
   results:
     name: 'Results'
