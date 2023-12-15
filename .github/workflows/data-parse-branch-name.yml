@@ -19,7 +19,7 @@ on:
         value: ${{ jobs.extract.outputs.safe }}
       trimmed:
         description: 'The safe value, but trimmed to 12 characters'
-        value: ${{ jobs.extract.outputs.trimmetrimmedd_branch }}
+        value: ${{ jobs.extract.outputs.trimmed }}
 
 permissions:
   contents: read

@@ -22,13 +22,13 @@ jobs:
 
   workspace_name:
     needs: [lint_yaml]
-    name: "Branch name"
+    name: "Workspace name"
     uses: ./.github/workflows/data-parse-workspace.yml
     secrets: inherit
   # generate semver tag
   semver_tag:
     needs: [lint_yaml, branch_name]
-    name: "Tag Name [${{ needs.branch_name.outputs.trimmed }}]"
+    name: "Tag Name [${{ needs.branch_name.outputs.safe }}]"
     uses: ./.github/workflows/data-parse-semver-tag.yml
     with:
       branch_name: ${{ needs.branch_name.outputs.safe }}
