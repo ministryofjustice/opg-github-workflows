@@ -3,45 +3,39 @@ name: "Parse Terraform Version From File"
 description: "Determine terraform version to use from version file"
 inputs:
   terraform_directory:
-    type: string
     description: "Directory where terraform will be run from. Looks for versions.tf file in this path."
     required: true
   terraform_versions_file:
-    type: string
     description: "Name of file that contains the required_version config is stored. (Default `./versions.tf`)"
     default: "./versions.tf"
 outputs:
-  error:
-    description: "Any returned error messages."
-    value: ${{ steps.verify.outputs.errors }}
   version:
     description: 'Discovered terraform version range. This may be an exact number (like 1.5.5) or a semver range (like >= 1.0).'
-    value: ${{ steps.version.outputs.terraform_version }}
-
-defaults:
-  run:
-    shell: bash
+    value: ${{ steps.version.outputs.version }}
 
 runs:
   using: "composite"
   steps:
+    # get our the calling repo as we need to access files form there
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.ref }}
     # set a blank version value
-    - run: |
-        echo "terraform_version=" >> $GITHUB_OUTPUT
-    # fail if directory or version file does exist
-    - id: verify
+    - shell: bash
+      run: |
+        echo "version=" >> $GITHUB_OUTPUT
+    # fail if directory or version file does not exist
+    - id: version
+      shell: bash
       run: |
         echo "errors=" >> $GITHUB_OUTPUT
         if [ ! -d ${{ inputs.terraform_directory }} ]; then
-          echo "errors=${errors}Directory not found." >> $GITHUB_OUTPUT
           exit 1
         fi
         cd ${{ inputs.terraform_directory }}
         if [ ! -f ${{ inputs.terraform_versions_file }} ]; then
-          echo "errors=${errors};File not found." >> $GITHUB_OUTPUT
           exit 1
         fi
-    - id: version
-      run: |
         terraform_version=$(cat ${{ inputs.terraform_versions_file }} | sed -r -n 's/.*required_version.*"(.*)"$/\1/p' )
-        echo "terraform_version=${terraform_version}" >> $GITHUB_OUTPUT
+        echo "version=${terraform_version}" >> $GITHUB_OUTPUT

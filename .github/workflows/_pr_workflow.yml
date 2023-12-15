@@ -25,6 +25,14 @@ jobs:
     name: "Workspace name"
     uses: ./.github/workflows/data-parse-workspace.yml
     secrets: inherit
+
+  terraform_version_test:
+    needs: [lint_yaml]
+    name: "Workspace name"
+    uses: ./.github/workflows/data-parse-terraform-version.yml
+    secrets: inherit
+
+
   # generate semver tag
   semver_tag:
     needs: [lint_yaml, branch_name]
