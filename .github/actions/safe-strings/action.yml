@@ -1,0 +1,47 @@
+name: "Safe string generation"
+description: "Convert a string into shortern and remove unsafe characters. If conditional_match is set and original equals this value then conditional_value is used for the outputs."
+inputs:
+  original:
+    description: "Original string (such as branch name) to make safe for tag usage etc"
+    required: true
+  suffix:
+    description: "Directory where terraform will be run from. Looks for versions.tf file in this path."
+    default: ""
+  conditional_match:
+    description: "If the original string matches this value, then use the conditional_value directly."
+    default: ""
+  conditional_value:
+    description: "When original matches conditional_match use this value for all other outputs directly."
+    default: ""
+  length:
+    description: "If set, trim the string to this length"
+
+outputs:
+  original:
+    description: "Original string"
+    value: ${{ steps.make_safe.outputs.original }}
+  suffix:
+    description: "Original suffix"
+    value: ${{ steps.make_safe.outputs.suffix }}
+  length:
+    description: "Originally requested length"
+    value: ${{ steps.make_safe.outputs.length }}
+  safe:
+    description: "Alphanumeric, lowercase, full length version of the original string."
+    value: ${{ steps.make_safe.outputs.safe }}
+  trimmed:
+    description: "Trimmed version of the `safe` output string"
+    value: ${{ steps.make_safe.outputs.trimmed }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.action_repository }}
+        ref: ${{ github.action_ref }}
+    - run: echo "${{ github.action_path }}" >> $GITHUB_PATH
+      shell: bash
+    - id: make_safe
+      shell: bash
+      run: safe-string.sh "${{inputs.original}}" "${{inputs.suffix}}" "${{inputs.length}}" "${{inputs.conditional_match}}" "${{inputs.conditional_value}}"

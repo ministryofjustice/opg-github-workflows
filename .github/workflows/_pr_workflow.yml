@@ -19,13 +19,19 @@ jobs:
     name: "Branch name"
     uses: ./.github/workflows/data-parse-branch-name.yml
     secrets: inherit
+
+  workspace_name:
+    needs: [lint_yaml]
+    name: "Workspace name"
+    uses: ./.github/workflows/data-parse-workspace.yml
+    secrets: inherit
   # generate semver tag
   semver_tag:
     needs: [lint_yaml, branch_name]
-    name: "Tag Name [${{ needs.branch_name.outputs.parsed }}]"
+    name: "Tag [${{ needs.branch_name.outputs.original }}]"
     uses: ./.github/workflows/data-parse-semver-tag.yml
     with:
-      branch_name: ${{ needs.branch_name.outputs.parsed }}
+      branch_name: ${{ needs.branch_name.outputs.original }}
     secrets: inherit
   # Generate a release
   create_release:
@@ -60,9 +66,9 @@ jobs:
           echo "### PR Information" >> $GITHUB_STEP_SUMMARY
           echo "| Segment | Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | Raw | ${{ needs.branch_name.outputs.raw }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | Parsed | ${{ needs.branch_name.outputs.parsed }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | Alphanumeric | ${{ needs.branch_name.outputs.alphanumeric }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | Original | ${{ needs.branch_name.outputs.original }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | Safe | ${{ needs.branch_name.outputs.safe }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | Trimmed | ${{ needs.branch_name.outputs.trimmed }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Tag | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | New Tag | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Pre-release | ${{ needs.semver_tag.outputs.prerelease }} |"  >> $GITHUB_STEP_SUMMARY
