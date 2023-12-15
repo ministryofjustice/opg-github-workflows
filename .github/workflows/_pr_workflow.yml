@@ -20,12 +20,14 @@ jobs:
     uses: ./.github/workflows/data-parse-branch-name.yml
     secrets: inherit
 
+  # workspace name - not used, but added for testing
   workspace_name:
     needs: [lint_yaml]
     name: "Workspace name"
     uses: ./.github/workflows/data-parse-workspace.yml
     secrets: inherit
 
+  # terraform version parsing - not used, added for testing
   terraform_version_test:
     needs: [lint_yaml]
     name: "Test terraform version lookup"
