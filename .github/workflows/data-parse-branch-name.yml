@@ -11,15 +11,15 @@ on:
         default: true
         required: false
     outputs:
-      raw:
-        description: 'Raw branch name with slashes and other non alphanumeric chars left in place'
-        value: ${{ jobs.extract.outputs.raw_branch }}
-      parsed:
-        description: 'Parsed branch name with some chars removed.'
-        value: ${{ jobs.extract.outputs.parsed_branch }}
-      alphanumeric:
-        description: 'Parsed branch name with ONLY alphanumeric chars.'
-        value: ${{ jobs.extract.outputs.alphanumeric_branch }}
+      original:
+        description: The original branch name with output any modification.'
+        value: ${{ jobs.extract.outputs.original }}
+      safe:
+        description: 'A lowercase version thats safe for tagging and similar containing only alphanumeric characters.'
+        value: ${{ jobs.extract.outputs.safe }}
+      trimmed:
+        description: 'The safe value, but trimmed to 12 characters'
+        value: ${{ jobs.extract.outputs.trimmed }}
 
 permissions:
   contents: read
@@ -50,40 +50,27 @@ jobs:
     name: 'Use github data to generate a clean branch name'
     runs-on: ubuntu-latest
     outputs:
-      raw_branch: ${{ steps.parse.outputs.raw_branch }}
-      parsed_branch: ${{ steps.parse.outputs.parsed_branch }}
-      alphanumeric_branch: ${{ steps.parse.outputs.alphanumeric_branch }}
+      original: ${{ steps.parse.outputs.original }}
+      safe: ${{ steps.parse.outputs.safe }}
+      trimmed: ${{ steps.parse.outputs.trimmed }}
     steps:
+      - id: branch_setup
+        run: |
+          branch=${GITHUB_HEAD_REF}
+          if [ -z "${GITHUB_HEAD_REF}" ]; then
+            branch=${GITHUB_REF#refs/heads/}
+          fi
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
       - id: parse
         name: Parse branch name
-        run: |
-
-          branch=${GITHUB_HEAD_REF}
-
-          if [ "${branch}" == "" ]; then
-            raw_branch="main"
-            parsed_branch="main"
-            alphanumeric_branch="main"
-          else
-            raw_branch=${branch}
-            parsed_branch=${branch//-}
-            parsed_branch=${parsed_branch//_}
-            parsed_branch=${parsed_branch//\/}
-            alphanumeric_branch=$( echo "${raw_branch}" | tr -cd '[:alnum:]')
-          fi
-          echo "GITHUB_REF: ${GITHUB_REF}"
-          echo "GITHUB HEAD REF: ${GITHUB_HEAD_REF}"
-          echo "RAW BRANCH: ${raw_branch}"
-          echo "PARSED BRANCH: ${parsed_branch}"
-          echo "ALPHANUMERIC BRANCH: ${alphanumeric_branch}"
-
-          echo "raw_branch=${raw_branch}" >> $GITHUB_OUTPUT
-          echo "parsed_branch=${parsed_branch}" >> $GITHUB_OUTPUT
-          echo "alphanumeric_branch=${alphanumeric_branch}" >> $GITHUB_OUTPUT
-      - name: Push to GITHUB_ENV
-        if: inputs.push_to_github_env
-        run: |
-          echo BRANCH_NAME=${{ steps.parse.outputs.parsed_branch }} >> $GITHUB_ENV
+        uses: ministryofjustice/opg-github-workflows/.github/actions/safe-strings@comp-test
+        with:
+          original: ${{steps.branch_setup.outputs.branch}}
+          length: 12
+      # - name: Push to GITHUB_ENV
+      #   if: inputs.push_to_github_env
+      #   run: |
+      #     echo BRANCH_NAME=${{ steps.parse.outputs.safe }} >> $GITHUB_ENV
 
   results:
     name: 'Results'
@@ -96,6 +83,6 @@ jobs:
           echo "### Branch Name Results" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| raw_branch | ${{ needs.extract.outputs.raw_branch }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| parsed_branch | ${{ needs.extract.outputs.parsed_branch }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| alphanumeric_branch | ${{ needs.extract.outputs.alphanumeric_branch }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| original | ${{ needs.extract.outputs.original }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| safe | ${{ needs.extract.outputs.safe }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| trimmed | ${{ needs.extract.outputs.trimmed }} |"  >> $GITHUB_STEP_SUMMARY
