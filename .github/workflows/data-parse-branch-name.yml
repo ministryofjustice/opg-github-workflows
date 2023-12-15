@@ -8,7 +8,7 @@ on:
       push_to_github_env:
         description: 'Boolean to push the clean branch name into $GITHUB_ENV as $BRANCH_NAME'
         type: boolean
-        default: true
+        default: false
         required: false
     outputs:
       original:
@@ -67,10 +67,10 @@ jobs:
         with:
           original: ${{steps.branch_setup.outputs.branch}}
           length: 12
-      # - name: Push to GITHUB_ENV
-      #   if: inputs.push_to_github_env
-      #   run: |
-      #     echo BRANCH_NAME=${{ steps.parse.outputs.safe }} >> $GITHUB_ENV
+      - name: Push to GITHUB_ENV
+        if: inputs.push_to_github_env
+        run: |
+          echo BRANCH_NAME=${{ steps.parse.outputs.safe }} >> $GITHUB_ENV
 
   results:
     name: 'Results'
