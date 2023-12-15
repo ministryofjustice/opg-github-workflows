@@ -38,7 +38,7 @@ jobs:
           echo "branch=${branch}" >> $GITHUB_OUTPUT
       - id: workspace_name
         name: Generate workspace name
-        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.0.0-migrate.6
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.0.0
         with:
           original: ${{steps.branch_setup.outputs.branch}}
           conditional_match: "main"
