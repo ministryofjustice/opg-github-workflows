@@ -1,0 +1,41 @@
+# Find Terraform Version from the versions.tf file
+name: "Parse Terraform Version From File"
+description: "Determine terraform version to use from version file"
+inputs:
+  terraform_directory:
+    description: "Directory where terraform will be run from. Looks for versions.tf file in this path."
+    required: true
+  terraform_versions_file:
+    description: "Name of file that contains the required_version config is stored. (Default `./versions.tf`)"
+    default: "./versions.tf"
+outputs:
+  version:
+    description: 'Discovered terraform version range. This may be an exact number (like 1.5.5) or a semver range (like >= 1.0).'
+    value: ${{ steps.version.outputs.version }}
+
+runs:
+  using: "composite"
+  steps:
+    # get our the calling repo as we need to access files form there
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.ref }}
+    # set a blank version value
+    - shell: bash
+      run: |
+        echo "version=" >> $GITHUB_OUTPUT
+    # fail if directory or version file does not exist
+    - id: version
+      shell: bash
+      run: |
+        echo "errors=" >> $GITHUB_OUTPUT
+        if [ ! -d ${{ inputs.terraform_directory }} ]; then
+          exit 1
+        fi
+        cd ${{ inputs.terraform_directory }}
+        if [ ! -f ${{ inputs.terraform_versions_file }} ]; then
+          exit 1
+        fi
+        terraform_version=$(cat ${{ inputs.terraform_versions_file }} | sed -r -n 's/.*required_version.*"(.*)"$/\1/p' )
+        echo "version=${terraform_version}" >> $GITHUB_OUTPUT
