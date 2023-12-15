@@ -23,7 +23,7 @@ jobs:
   workspace_name:
     needs: [lint_yaml]
     name: "Branch name"
-    uses: ./.github/workflows/data-parse-workspace-name.yml
+    uses: ./.github/workflows/data-parse-workspace.yml
     secrets: inherit
   # generate semver tag
   semver_tag:
