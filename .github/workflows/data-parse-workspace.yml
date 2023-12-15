@@ -26,33 +26,25 @@ jobs:
     name: 'Generate the terraform workspace name to use'
     runs-on: ubuntu-latest
     outputs:
-      workspace_name: ${{ steps.workspace_name.outputs.workspace_name }}
+      workspace_name: ${{ steps.workspace_name.outputs.trimmed }}
     steps:
-      - id: workspace_name
-        name: Generate
+      - id: branch_setup
+        name: Setup branch variable
         run: |
-          # Use the source branch name if this is a pull request
+          branch=${GITHUB_HEAD_REF}
           if [ -z "${GITHUB_HEAD_REF}" ]; then
             branch=${GITHUB_REF#refs/heads/}
-          else
-            branch=${GITHUB_HEAD_REF}
           fi
-          echo "BRANCH: ${branch}"
-
-          if [ "${branch}" == "main" ]; then
-            workspace_name="production"
-          else
-            branch=${branch::10}
-            workspace_name="${branch}${{ github.event.number }}"
-            workspace_name=${workspace_name//-}
-            workspace_name=${workspace_name//_}
-            workspace_name=${workspace_name//\/}
-            workspace_name=${workspace_name:0:11}
-            workspace_name=$(echo ${workspace_name} | tr '[:upper:]' '[:lower:]')
-          fi
-
-          echo "workspace_name=${workspace_name}" >> $GITHUB_OUTPUT
-          echo "WORKSPACE: ${workspace_name}"
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
+      - id: workspace_name
+        name: Generate workspace name
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.0.0-migrate.6
+        with:
+          original: ${{steps.branch_setup.outputs.branch}}
+          conditional_match: "main"
+          conditional_value: "production"
+          suffix: ${{ github.event.number }}
+          length: 11
 
   results:
     name: 'Results'
