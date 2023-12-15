@@ -28,10 +28,10 @@ jobs:
   # generate semver tag
   semver_tag:
     needs: [lint_yaml, branch_name]
-    name: "Tag Name [${{ needs.branch_name.outputs.safe }}]"
+    name: "Tag [${{ needs.branch_name.outputs.original }}]"
     uses: ./.github/workflows/data-parse-semver-tag.yml
     with:
-      branch_name: ${{ needs.branch_name.outputs.safe }}
+      branch_name: ${{ needs.branch_name.outputs.original }}
     secrets: inherit
   # Generate a release
   create_release:
