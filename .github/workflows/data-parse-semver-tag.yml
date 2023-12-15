@@ -20,7 +20,7 @@ on:
     inputs:
       branch_name:
         type: string
-        description: "Current branch name. Used for trag creation, but trucated to 16 characters."
+        description: "Current branch name. Used for tag creation, but trucated to 16 characters."
         required: true
       release_branch:
         type: string
@@ -46,30 +46,32 @@ jobs:
     name: "Create tags"
     runs-on: ubuntu-latest
     steps:
+      - id: truncate
+        name: Truncate branch name
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.0.0
+        with:
+          original: ${{ inputs.branch_name }}
+          length: 16
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
-      - name: Truncate branch name
-        id: truncate
-        run: |
-          branch_name=${{ inputs.branch_name }}
-          truncated=${branch_name:0:16}
-          echo "truncated_branch_name=${truncated}" >> $GITHUB_OUTPUT
-      - name: Bump version
-        id: bump_version
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+      - name: Create Tag
+        id: create_tag
         uses: anothrNick/github-tag-action@1.67.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INITIAL_VERSION: 0.0.1
           DEFAULT_BUMP: minor
-          PRERELEASE_SUFFIX: ${{ steps.truncate.outputs.truncated_branch_name }}
+          PRERELEASE_SUFFIX: ${{ steps.truncate.outputs.safe }}
           PRERELEASE: ${{ inputs.branch_name != inputs.release_branch && true || false }}
           RELEASE_BRANCHES: ${{ inputs.release_branch }}
           WITH_V: true
     outputs:
-      truncated_branch_name: ${{ steps.truncate.outputs.truncated_branch_name }}
-      tag: ${{ steps.bump_version.outputs.tag }}
-      new_tag: ${{ steps.bump_version.outputs.new_tag }}
+      truncated_branch_name: ${{ steps.truncate.outputs.safe }}
+      tag: ${{ steps.create_tag.outputs.tag }}
+      new_tag: ${{ steps.create_tag.outputs.new_tag }}
       prerelease: ${{ inputs.branch_name != inputs.release_branch && true || false }}
 
   results:
