@@ -1,11 +1,17 @@
 name: "Safe string generation"
-description: "Convert a string into shortern and remove unsafe characters"
+description: "Convert a string into shortern and remove unsafe characters. If conditional_match is set and original equals this value then conditional_value is used for the outputs."
 inputs:
   original:
     description: "Original string (such as branch name) to make safe for tag usage etc"
     required: true
   suffix:
     description: "Directory where terraform will be run from. Looks for versions.tf file in this path."
+    default: ""
+  conditional_match:
+    description: "If the original string matches this value, then use the conditional_value directly."
+    default: ""
+  conditional_value:
+    description: "When original matches conditional_match use this value for all other outputs directly."
     default: ""
   length:
     description: "If set, trim the string to this length"
@@ -38,4 +44,4 @@ runs:
       shell: bash
     - id: make_safe
       shell: bash
-      run: safe-string.sh "${{inputs.original}}" "${{inputs.suffix}}" "${{inputs.length}}"
+      run: safe-string.sh "${{inputs.original}}" "${{inputs.suffix}}" "${{inputs.length}}" "${{inputs.conditional_match}}" "${{inputs.conditional_value}}"
