@@ -232,7 +232,7 @@ jobs:
         working-directory: ${{ inputs.terraform_directory }}
 
       - name: Persist Terraform Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: inputs.persist_artifacts == true
         with:
           name: terraform-artifact
