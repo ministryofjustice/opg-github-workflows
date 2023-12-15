@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+set -e
+
 str="$1"
 suffix="$2"
 max_len="$3"
@@ -11,12 +15,6 @@ if [ ! -z "${max_len}" ]; then
     sub_len="$((max_len - suffix_len))"
     trimmed="${safe:0:$sub_len}${suffix}"
 fi
-
-echo "original=${str}"
-echo "suffix=${suffix}"
-echo "length=${max_len}"
-echo "safe=${safe}"
-echo "trimmed=${trimmed}"
 
 echo "original=${str}" >> $GITHUB_OUTPUT
 echo "suffix=${suffix}" >> $GITHUB_OUTPUT
