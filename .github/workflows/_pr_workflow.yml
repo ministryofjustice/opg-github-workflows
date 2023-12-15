@@ -28,7 +28,7 @@ jobs:
 
   terraform_version_test:
     needs: [lint_yaml]
-    name: "Workspace name"
+    name: "Test terraform version lookup"
     uses: ./.github/workflows/data-parse-terraform-version.yml
     with:
       terraform_directory: "./"
