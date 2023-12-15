@@ -46,17 +46,19 @@ jobs:
     name: "Create tags"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: '0'
       - id: truncate
         name: Truncate branch name
         uses: ministryofjustice/opg-github-workflows/.github/actions/safe-strings@comp-test
         with:
           original: ${{ inputs.branch_name }}
           length: 16
-      - name: Bump version
-        id: bump_version
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+      - name: Create Tag
+        id: create_tag
         uses: anothrNick/github-tag-action@1.67.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,8 +70,8 @@ jobs:
           WITH_V: true
     outputs:
       truncated_branch_name: ${{ steps.truncate.outputs.trimmed }}
-      tag: ${{ steps.bump_version.outputs.tag }}
-      new_tag: ${{ steps.bump_version.outputs.new_tag }}
+      tag: ${{ steps.create_tag.outputs.tag }}
+      new_tag: ${{ steps.create_tag.outputs.new_tag }}
       prerelease: ${{ inputs.branch_name != inputs.release_branch && true || false }}
 
   results:
