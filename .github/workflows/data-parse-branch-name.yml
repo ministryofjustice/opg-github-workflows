@@ -57,8 +57,8 @@ jobs:
       - id: branch_setup
         run: |
           branch=${GITHUB_HEAD_REF}
-          if [ "${branch}" == "" ]; then
-            branch="main"
+          if [ -z "${GITHUB_HEAD_REF}" ]; then
+            branch=${GITHUB_REF#refs/heads/}
           fi
           echo "branch=${branch}" >> $GITHUB_OUTPUT
       - id: parse
