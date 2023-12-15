@@ -30,6 +30,9 @@ jobs:
     needs: [lint_yaml]
     name: "Workspace name"
     uses: ./.github/workflows/data-parse-terraform-version.yml
+    with:
+      terraform_directory: "./"
+      terraform_versions_file: "./test_terraform_versions"
     secrets: inherit
 
 
