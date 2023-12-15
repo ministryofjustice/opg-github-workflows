@@ -15,7 +15,7 @@ on:
     outputs:
       version:
         description: 'Discovered terraform version range. This may be an exact number (like 1.5.5) or a semver range (like >= 1.0).'
-        value: ${{ jobs.discover_version_semver_range.outputs.terraform_version }}
+        value: ${{ jobs.discover_version_semver_range.outputs.version }}
 
 permissions:
   contents: read
@@ -48,34 +48,24 @@ jobs:
           echo "| terraform_directory | ${{ inputs.terraform_directory }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_versions_file | ${{ inputs.terraform_versions_file }} |"  >> $GITHUB_STEP_SUMMARY
 
-  discover_version_semver_range:
-    name: "Find [${{ inputs.terraform_versions_file }}], parse out the required_version data."
+  find_version:
+    name: "Find version [${{ inputs.terraform_versions_file }}]"
     runs-on: ubuntu-latest
     outputs:
-      terraform_version: ${{ steps.version.outputs.terraform_version}}
+      version: ${{ steps.version.outputs.version}}
     steps:
-      - uses: actions/checkout@v4
-      - id: check_file_exists
-        working-directory: ${{ inputs.terraform_directory }}
-        name: Check [${{ inputs.terraform_versions_file }}] check_file_exists
-        run: |
-          if [ ! -f ${{ inputs.terraform_versions_file }} ]; then
-            echo "terraform_version=" >> $GITHUB_OUTPUT
-            exit 1
-          fi
       - id: version
-        working-directory: ${{ inputs.terraform_directory }}
-        name: Get terraform version
-        run: |
-          if [ -f ${{ inputs.terraform_versions_file }} ]; then
-            terraform_version=$(cat ${{ inputs.terraform_versions_file }} | sed -r -n 's/.*required_version.*"(.*)"$/\1/p' )
-            echo "terraform_version=${terraform_version}" >> $GITHUB_OUTPUT
-          fi
+        name: Get version
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v0.2.0-migrate.0
+        with:
+          terraform_directory: ${{inputs.terraform_directory}}
+          terraform_versions_file: ${{inputs.terraform_versions_file}}
+
 
   results:
     name: "Results"
     runs-on: ubuntu-latest
-    needs: [discover_version_semver_range]
+    needs: [find_version]
     steps:
       - name: Summary
         if: always()
@@ -83,4 +73,4 @@ jobs:
           echo "### Terraform Version Results" >> $GITHUB_STEP_SUMMARY
           echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_version | ${{ needs.discover_version_semver_range.outputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| version | ${{ needs.find_version.outputs.version }} |"  >> $GITHUB_STEP_SUMMARY
