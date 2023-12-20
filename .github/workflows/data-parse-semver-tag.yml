@@ -48,10 +48,10 @@ jobs:
     steps:
       - id: truncate
         name: Truncate branch name
-        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.0.0
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.4.0
         with:
           original: ${{ inputs.branch_name }}
-          length: 16
+          length: 12
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
