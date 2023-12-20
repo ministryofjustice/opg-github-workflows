@@ -72,7 +72,7 @@ on:
         default: "/tmp/terraform_artifacts"
       terraform_version_file:
         type: string
-        description: "File containing the terraform version to use"
+        description: "Plain text file containing only the terraform version to use"
         required: false
         default: "NOT_SET"
 
@@ -147,24 +147,31 @@ jobs:
     outputs:
       terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: unfor19/install-aws-cli-action@v1
+      - name: "Checkout"
+        uses: actions/checkout@v4
+      - name: "Install AWS CLI"
+        uses: unfor19/install-aws-cli-action@v1
+      - name: "Parse terraform simple file [file: ${{ inputs.terraform_version_file }}]"
+        id: tf_version_simple
+        if: inputs.terraform_version_file != 'NOT_SET'
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v1.4.0
+        with:
+          terraform_directory: ${{ inputs.terraform_directory }}
+          terraform_versions_file: ${{ inputs.terraform_version_file }}
+          simple_file: true
       - name: Set Terraform version
         id: tf_version
         run: |
           if [ "${{ inputs.terraform_version_file }}" != "NOT_SET" ]; then
-            echo "Using terraform version from file"
-            if [ ! -f "${{ inputs.terraform_version_file }}" ]; then
-              echo "Terraform version file not found"
-              exit 1
-            fi
-            echo "TF_VERSION=$(cat ${{ inputs.terraform_version_file }})" >> $GITHUB_OUTPUT
+            echo "Using terraform version file content"
+            echo "TF_VERSION=$(cat ${{ steps.tf_version_simple.outputs.version }})" >> $GITHUB_OUTPUT
           else
             echo "Using terraform version from input"
             echo "TF_VERSION=${{ inputs.terraform_version }}" >> $GITHUB_OUTPUT
           fi
         shell: bash
-      - uses: hashicorp/setup-terraform@v3
+      - name: "Setup terraform"
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ steps.tf_version.outputs.TF_VERSION }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
@@ -183,19 +190,16 @@ jobs:
           aws-region: ${{ inputs.aws_region }}
           role-duration-seconds: 3600
           role-session-name: OPGTerraformGithubAction
-
       - name: Terraform Init
         run: |
           terraform init -lock-timeout=300s -input=false
         working-directory: ${{ inputs.terraform_directory }}
-
       - name: Terraform List Workspaces
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
         run: |
           terraform workspace list
         working-directory: ${{ inputs.terraform_directory }}
-
       - name: Terraform Plan
         env:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
@@ -208,15 +212,17 @@ jobs:
           terraform workspace show
           terraform plan -lock-timeout=300s -input=false -parallelism=30 ${{ inputs.terraform_variables }}
         working-directory: ${{ inputs.terraform_directory }}
-
-      - name: Register ephemeral workspace
+      - id: register_workspace
         if: inputs.is_ephemeral == true
-        run: |
-          wget https://github.com/TomTucka/terraform-workspace-manager/releases/download/v0.3.1/terraform-workspace-manager_Linux_x86_64.tar.gz -O $HOME/terraform-workspace-manager.tar.gz
-          sudo tar -xvf $HOME/terraform-workspace-manager.tar.gz -C /usr/local/bin
-          sudo chmod +x /usr/local/bin/terraform-workspace-manager
-          terraform-workspace-manager -register-workspace=${{ inputs.terraform_workspace }} -time-to-protect=${{ inputs.workspace_manager_protection_duration }} -aws-account-id=${{ inputs.workspace_manager_aws_account_id }} -aws-iam-role=${{ inputs.workspace_manager_aws_iam_role }}
-        working-directory: ${{ inputs.terraform_directory }}
+        name: Register ephemeral workspace
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-workspace-manager@v1.4.0
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
+          aws_account_id: ${{ inputs.workspace_manager_aws_account_id }}
+          aws_iam_role: ${{ inputs.workspace_manager_aws_iam_role }}
+          register_workspace: ${{ inputs.terraform_workspace }}
+          time_to_protect: ${{ inputs.workspace_manager_protection_duration }}
 
       - name: Terraform Apply
         if: inputs.terraform_apply == true
