@@ -154,7 +154,7 @@ jobs:
       - name: "Parse terraform simple file [file: ${{ inputs.terraform_version_file }}]"
         id: tf_version_simple
         if: inputs.terraform_version_file != 'NOT_SET'
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v1.4.0
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.1.3
         with:
           terraform_directory: ${{ inputs.terraform_directory }}
           terraform_versions_file: ${{ inputs.terraform_version_file }}
@@ -215,7 +215,7 @@ jobs:
       - id: register_workspace
         if: inputs.is_ephemeral == true
         name: Register ephemeral workspace
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-workspace-manager@v1.4.0
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-workspace-manager@v2.1.3
         with:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
