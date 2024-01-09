@@ -11,15 +11,15 @@ on:
         default: false
         required: false
     outputs:
-      original:
+      branch_name:
         description: The original branch name with output any modification.'
-        value: ${{ jobs.extract.outputs.original }}
+        value: ${{ jobs.branch_name.outputs.branch_name }}
       full_length:
         description: 'Alphanumeric, lowercase, but full length version of the original string.'
-        value: ${{ jobs.extract.outputs.full_length }}
+        value: ${{ jobs.branch_name.outputs.full_length }}
       safe:
         description: 'Alphanumeric and lowercase version of the original, trimmed to 12 characters.'
-        value: ${{ jobs.extract.outputs.safe }}
+        value: ${{ jobs.branch_name.outputs.safe }}
 
 
 permissions:
@@ -47,36 +47,26 @@ jobs:
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
           echo "| push_to_github_env | ${{ inputs.push_to_github_env }} |"  >> $GITHUB_STEP_SUMMARY
 
-  extract:
+  branch_name:
     name: 'Use github data to generate a clean branch name'
     runs-on: ubuntu-latest
     outputs:
-      original: ${{ steps.parse.outputs.original }}
-      safe: ${{ steps.parse.outputs.safe }}
-      full_length: ${{ steps.parse.outputs.full_length }}
+      branch_name: ${{ steps.get_branch_name.outputs.branch_name }}
+      safe: ${{ steps.get_branch_name.outputs.safe }}
+      full_length: ${{ steps.get_branch_name.outputs.full_length }}
     steps:
-      - id: branch_setup
-        run: |
-          branch=${GITHUB_HEAD_REF}
-          if [ -z "${GITHUB_HEAD_REF}" ]; then
-            branch=${GITHUB_REF#refs/heads/}
-          fi
-          echo "branch=${branch}" >> $GITHUB_OUTPUT
-      - id: parse
+      - id: get_branch_name
         name: Parse branch name
-        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.4.0
-        with:
-          original: ${{steps.branch_setup.outputs.branch}}
-          length: 12
+        uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@v2.3.3
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
-          echo BRANCH_NAME=${{ steps.branch_setup.outputs.branch }} >> $GITHUB_ENV
+          echo BRANCH_NAME=${{ steps.get_branch_name.outputs.full_length }} >> $GITHUB_ENV
 
   results:
     name: 'Results'
     runs-on: ubuntu-latest
-    needs: [extract]
+    needs: [branch_name]
     steps:
       - name: 'Summary'
         if: always()
@@ -84,6 +74,6 @@ jobs:
           echo "### Branch Name Results" >> $GITHUB_STEP_SUMMARY
           echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| original | ${{ needs.extract.outputs.original }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| full_length | ${{ needs.extract.outputs.full_length }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| safe | ${{ needs.extract.outputs.safe }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| branch_name | ${{ needs.branch_name.outputs.branch_name }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| full_length | ${{ needs.branch_name.outputs.full_length }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| safe | ${{ needs.branch_name.outputs.safe }} |"  >> $GITHUB_STEP_SUMMARY
