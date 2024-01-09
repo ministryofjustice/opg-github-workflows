@@ -29,22 +29,17 @@ jobs:
       workspace_name: ${{ steps.workspace_name.outputs.trimmed }}
     steps:
       - id: branch_setup
-        name: Setup branch variable
-        run: |
-          branch=${GITHUB_HEAD_REF}
-          if [ -z "${GITHUB_HEAD_REF}" ]; then
-            branch=${GITHUB_REF#refs/heads/}
-          fi
-          echo "branch=${branch}" >> $GITHUB_OUTPUT
+        name: Generate branch_setup
+        uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@v2.3.3
       - id: workspace_name
         name: Generate workspace name
-        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v1.4.0
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v2.3.3
         with:
-          original: ${{steps.branch_setup.outputs.branch}}
+          original: ${{steps.branch_setup.outputs.branch_name}}
           conditional_match: "main"
           conditional_value: "production"
           suffix: ${{ github.event.number }}
-          length: 11
+          length: 12
 
   results:
     name: 'Results'
