@@ -24,10 +24,10 @@ jobs:
   # generate semver tag
   semver_tag:
     needs: [branch_name]
-    name: "Tag Name (${{ needs.branch_name.outputs.original }})"
+    name: "Tag Name (${{ needs.branch_name.outputs.branch_name }})"
     uses: ./.github/workflows/data-parse-semver-tag.yml
     with:
-      branch_name: ${{ needs.branch_name.outputs.original }}
+      branch_name: ${{ needs.branch_name.outputs.branch_name }}
     secrets: inherit
 
   # Generate a release
@@ -63,7 +63,7 @@ jobs:
           echo "### Release Information" >> $GITHUB_STEP_SUMMARY
           echo "| Segment | Variable | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- | --- |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | Original | ${{ needs.branch_name.outputs.original }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | Branch Name | ${{ needs.branch_name.outputs.branch_name }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Branch | Safe | ${{ needs.branch_name.outputs.safe }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Branch | Full Length | ${{ needs.branch_name.outputs.full_length }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Tag | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
