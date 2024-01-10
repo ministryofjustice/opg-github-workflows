@@ -75,8 +75,10 @@ jobs:
           php-version: ${{inputs.php_version}}
           tools: vimeo/psalm
       - name: Composer install
+        env:
+          COMPOSER_COMMAND: ${{ inputs.composer_command }}
         if: steps.filter.outputs.check == 'true'
-        run: ${{ inputs.composer_command }}
+        run: ${COMPOSER_COMMAND}
       - name: Run psalm
         if: steps.filter.outputs.check == 'true'
         run: psalm --output-format=github --taint-analysis --report=psalm-results.sarif
