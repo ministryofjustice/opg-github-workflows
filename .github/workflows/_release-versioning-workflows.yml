@@ -69,9 +69,6 @@ jobs:
           echo "| Semver | Tag | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | New Tag | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Pre-release | ${{ needs.semver_tag.outputs.prerelease }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Release | Draft | true |" >> $GITHUB_STEP_SUMMARY
-          echo "| Release | Pre-release | true |" >> $GITHUB_STEP_SUMMARY
-          echo "| Release | Notes | true |" >> $GITHUB_STEP_SUMMARY
           echo "| Release | URL | [${{ needs.create_release.outputs.id }}](${{ needs.create_release.outputs.html_url }}) |"  >> $GITHUB_STEP_SUMMARY
 
   end:
