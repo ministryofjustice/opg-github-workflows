@@ -56,7 +56,7 @@ jobs:
     steps:
       - id: version
         name: Get version
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.3.3
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.6.0
         with:
           terraform_directory: ${{inputs.terraform_directory}}
           terraform_versions_file: ${{inputs.terraform_versions_file}}

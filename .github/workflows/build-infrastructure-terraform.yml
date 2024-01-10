@@ -154,7 +154,7 @@ jobs:
       - name: "Parse terraform simple file [file: ${{ inputs.terraform_version_file }}]"
         id: tf_version_simple
         if: inputs.terraform_version_file != 'NOT_SET'
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.3.3
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.6.0
         with:
           terraform_directory: ${{ inputs.terraform_directory }}
           terraform_versions_file: ${{ inputs.terraform_version_file }}
