@@ -154,20 +154,22 @@ jobs:
       - name: "Parse terraform simple file [file: ${{ inputs.terraform_version_file }}]"
         id: tf_version_simple
         if: inputs.terraform_version_file != 'NOT_SET'
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.3.3
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.6.2
         with:
           terraform_directory: ${{ inputs.terraform_directory }}
           terraform_versions_file: ${{ inputs.terraform_version_file }}
           simple_file: true
       - name: Set Terraform version
         id: tf_version
+        env:
+          TF_VER: ${{ inputs.terraform_version }}
         run: |
           if [ "${{ inputs.terraform_version_file }}" != "NOT_SET" ]; then
             echo "Using terraform version file content"
             echo "TF_VERSION=$(cat ${{ steps.tf_version_simple.outputs.version }})" >> $GITHUB_OUTPUT
           else
             echo "Using terraform version from input"
-            echo "TF_VERSION=${{ inputs.terraform_version }}" >> $GITHUB_OUTPUT
+            echo "TF_VERSION=${TF_VER}" >> $GITHUB_OUTPUT
           fi
         shell: bash
       - name: "Setup terraform"
@@ -208,9 +210,10 @@ jobs:
           TF_VAR_github_token: ${{ secrets.GITHUB_ACCESS_TOKEN }}
           TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
           TF_VAR_circleci_token: ${{ secrets.CIRCLECI_TOKEN }}
+          TF_INPUT_VARS: ${{ inputs.terraform_variables }}
         run: |
           terraform workspace show
-          terraform plan -lock-timeout=300s -input=false -parallelism=30 ${{ inputs.terraform_variables }}
+          terraform plan -lock-timeout=300s -input=false -parallelism=30 ${TF_INPUT_VARS}
         working-directory: ${{ inputs.terraform_directory }}
       - id: register_workspace
         if: inputs.is_ephemeral == true
@@ -233,8 +236,9 @@ jobs:
           TF_VAR_github_token: ${{ secrets.GITHUB_ACCESS_TOKEN }}
           TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
           TF_VAR_circleci_token: ${{ secrets.CIRCLECI_TOKEN }}
+          TF_INPUT_VARS: ${{ inputs.terraform_variables }}
         run: |
-          terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${{ inputs.terraform_variables }}
+          terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${TF_INPUT_VARS}
         working-directory: ${{ inputs.terraform_directory }}
 
       - name: Persist Terraform Artifacts
