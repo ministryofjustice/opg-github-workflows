@@ -1,0 +1,27 @@
+name: "[Pull Request] TEST"
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # Output summary data
+  summary:
+    if: always()
+    name: PR
+    runs-on: 'ubuntu-latest'
+    steps:
+      - id: version
+        name: Get version
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@test-tag
+
+  end:
+    name: 'End of PR workflow'
+    runs-on: 'ubuntu-latest'
+    needs: [branch_name, semver_tag, summary]
+    steps:
+      - id: end
+        name: End
+        run: |
+          echo "End"
