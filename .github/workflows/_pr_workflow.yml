@@ -29,12 +29,19 @@ jobs:
     with:
       branch_name: ${{ needs.branch_name.outputs.branch_name }}
     secrets: inherit
+  
+  test:
+    name: "tf test"
+    uses: ./.github/workflows/data-parse-terraform-version.yml
+    with:
+      terraform_directory: "./"
+    secrets: inherit
   # Output summary data
   summary:
     if: always()
     name: PR
     runs-on: 'ubuntu-latest'
-    needs: [branch_name, semver_tag]
+    needs: [branch_name, semver_tag, test]
     steps:
       - id: summary
         name: "Summary"
@@ -52,7 +59,7 @@ jobs:
   end:
     name: 'End of PR workflow'
     runs-on: 'ubuntu-latest'
-    needs: [branch_name, semver_tag, summary]
+    needs: [branch_name, semver_tag, summary, test]
     steps:
       - id: end
         name: End
