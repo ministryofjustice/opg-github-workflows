@@ -16,14 +16,14 @@ jobs:
           file_or_dir: .github/workflows/*.yml
   # generate branch name
   branch_name:
-    needs: [lint_yaml]
+    needs: [lint_yaml, test]
     name: "Branch name"
     uses: ./.github/workflows/data-parse-branch-name.yml
     secrets: inherit
 
   # generate semver tag
   semver_tag:
-    needs: [lint_yaml, branch_name]
+    needs: [lint_yaml, branch_name, test]
     name: "Tag [${{ needs.branch_name.outputs.branch_name }}]"
     uses: ./.github/workflows/data-parse-semver-tag.yml
     with:
