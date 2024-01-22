@@ -31,7 +31,7 @@ jobs:
     secrets: inherit
   
   test:
-    runs-on: ubunut-latest
+    runs-on: ubuntu-latest
     name: "tf test"
     steps:      
       - id: version
