@@ -1,0 +1,51 @@
+# Find Terraform Version from the versions.tf file
+name: "TEST: [Data - Parse] Terraform Version"
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      terraform_directory:
+        type: string
+        description: "Directory where terraform will be run from. Looks for versions.tf file in this path."
+        required: true
+      terraform_versions_file:
+        type: string
+        description: "Name of file that contains the required_version config is stored. (Default `./versions.tf`)"
+        default: "./versions.tf"
+    outputs:
+      version:
+        description: 'Discovered terraform version range. This may be an exact number (like 1.5.5) or a semver range (like >= 1.0).'
+        value: ${{ jobs.discover_version_semver_range.outputs.version }}
+
+permissions:
+  contents: read
+  security-events: none
+  pull-requests: none
+  actions: none
+  checks: none
+  deployments: none
+  issues: none
+  packages: none
+  repository-projects: none
+  statuses: none
+
+defaults:
+  run:
+    shell: bash
+
+
+jobs:
+
+
+  find_version:
+    name: "Find version [${{ inputs.terraform_versions_file }}]"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version}}
+    steps:
+      - id: version
+        name: Get version
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@test-tag
+        with:
+          terraform_directory: ${{inputs.terraform_directory}}
+          terraform_versions_file: ${{inputs.terraform_versions_file}}
