@@ -31,11 +31,15 @@ jobs:
     secrets: inherit
   
   test:
+    runs-on: ubunut-latest
     name: "tf test"
-    uses: ./.github/workflows/data-parse-terraform-version.yml
-    with:
-      terraform_directory: "./"
-    secrets: inherit
+    steps:      
+      - id: version
+        name: Get version
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@test-tag
+        with:
+          terraform_directory: "./"          
+    
   # Output summary data
   summary:
     if: always()
