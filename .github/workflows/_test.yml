@@ -38,6 +38,19 @@ jobs:
           branch_name: ${{ steps.branchname.outputs.branch_name }}
       - name: "LATEST TAG: [${{steps.latesttag.outputs.last_release}} => ${{steps.latesttag.outputs.last_prerelease}}]"
         run: echo "LATEST TAG=${{steps.latesttag.outputs.last_release}} => ${{steps.latesttag.outputs.last_prerelease}}"
+      - id: nexttag
+        name: TEST NEXT TAG
+        uses: ministryofjustice/opg-github-actions/.github/actions/next-tag@v2.8.0-goversion.0
+        with:
+          prerelease: true
+          prerelease_suffix: ${{ steps.branchname.outputs.safe }}
+          last_prerelease: ${{ steps.latesttag.outputs.last_prerelease }}
+          last_release: ${{ steps.latesttag.outputs.last_release }}
+          base_commitish: ${{steps.branchname.outputs.base_commitish}}
+          head_commitish: ${{steps.branchname.outputs.head_commitish}}
+          with_v: true
+      - name: "NEXT TAG: [${{steps.latesttag.outputs.next_tag}}]"
+        run: echo "NEXT TAG=${{steps.latesttag.outputs.next_tag}}"
 
 
   branchNameAsWorkflow:
