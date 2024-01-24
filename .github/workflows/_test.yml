@@ -29,6 +29,11 @@ jobs:
       - name: "BRANCH NAME: [${{steps.branchname.outputs.branch_name}} => ${{steps.branchname.outputs.safe}}]"
         run: echo "VERSION=${{steps.branchname.outputs.branch_name}} => ${{steps.branchname.outputs.safe}}"
 
+  branchNameAsWorkflow:
+    name: TEST BRANCH NAME AS WORKFLOW
+    uses: ./.github/workflows/data-parse-branch-name.yml
+    secrets: inherit
+
   # TERRAFORM VERSION
   terraformVersionAsStep:
     name: TEST TERRAFORM VERSION AS STEP
