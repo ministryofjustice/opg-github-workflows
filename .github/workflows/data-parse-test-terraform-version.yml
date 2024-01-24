@@ -45,7 +45,7 @@ jobs:
     steps:
       - id: version
         name: Get version
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@test-tag
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.8.0-goversion.0 #test-tag
         with:
           terraform_directory: ${{inputs.terraform_directory}}
           terraform_versions_file: ${{inputs.terraform_versions_file}}
