@@ -37,7 +37,7 @@ jobs:
           prerelease_suffix: ${{ steps.branchname.outputs.safe }}
           branch_name: ${{ steps.branchname.outputs.branch_name }}
       - name: "LATEST TAG: [${{steps.latesttag.outputs.last_release}} => ${{steps.latesttag.outputs.last_prerelease}}]"
-        run: echo "LATEST TAG=${{steps.latesttag.outputs.last_release}} => ${{steps.latesttag.outputs.last_prerelease}}""
+        run: echo "LATEST TAG=${{steps.latesttag.outputs.last_release}} => ${{steps.latesttag.outputs.last_prerelease}}"
 
 
   branchNameAsWorkflow:
