@@ -4,12 +4,27 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: none
+  security-events: none
+  pull-requests: none
+  actions: none
+  checks: none
+  deployments: none
+  issues: none
+  packages: none
+  repository-projects: none
+  statuses: none
+
+
 jobs:
 
   # Output summary data
   asStep:
     name: TEST STEP
     runs-on: 'ubuntu-latest'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - id: version
         name: Get version
