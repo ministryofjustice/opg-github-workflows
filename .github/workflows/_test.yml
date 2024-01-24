@@ -5,13 +5,13 @@ on:
     branches: [main]
 
 permissions:
-  contents: none
+  contents: write
   security-events: none
   pull-requests: none
-  actions: none
+  actions: read
   checks: none
-  deployments: none
-  issues: none
+  deployments: read
+  issues: read
   packages: none
   repository-projects: none
   statuses: none
