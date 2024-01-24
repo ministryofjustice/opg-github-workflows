@@ -18,8 +18,18 @@ permissions:
 
 
 jobs:
+  # BRANCH NAME
+  branchNameAsStep:
+    name: BRANCH NAME AS STEP
+    runs-on: 'ubuntu-latest'
+    steps:
+      - id: branchname
+        name: Get Branch Details
+        uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@v2.8.0-goversion.0
+      - name: "BRANCH NAME: [${{steps.branchname.outputs.branch_name}} => ${{steps.branchname.outputs.safe}}]"
+        run: echo "VERSION=${{steps.branchname.outputs.branch_name}} => ${{steps.branchname.outputs.safe}}"
 
-  # Output summary data
+  # TERRAFORM VERSION
   terraformVersionAsStep:
     name: TEST TERRAFORM VERSION AS STEP
     runs-on: 'ubuntu-latest'
