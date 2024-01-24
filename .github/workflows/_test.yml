@@ -18,16 +18,27 @@ permissions:
 
 
 jobs:
-  # BRANCH NAME
-  branchNameAsStep:
-    name: TEST BRANCH NAME AS STEP
+
+  # TAG RELATED AS STEPS
+  asSteps:
+    name: TEST BRANCH AND TAGS AS STEPS
     runs-on: 'ubuntu-latest'
     steps:
       - id: branchname
-        name: Get Branch Details
+        name: TEST BRANCH NAME
         uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@v2.8.0-goversion.0
       - name: "BRANCH NAME: [${{steps.branchname.outputs.branch_name}} => ${{steps.branchname.outputs.safe}}]"
         run: echo "VERSION=${{steps.branchname.outputs.branch_name}} => ${{steps.branchname.outputs.safe}}"
+      - id: latesttag
+        name: TEST LATEST TAG
+        uses: ministryofjustice/opg-github-actions/.github/actions/latest-tag@v2.8.0-goversion.0
+        with:
+          prerelease: true
+          prerelease_suffix: ${{ steps.branchname.outputs.safe }}
+          branch_name: ${{ steps.branchname.outputs.branch_name }}
+      - name: "LATEST TAG: [${{steps.latesttag.outputs.last_release}} => ${{steps.latesttag.outputs.last_prerelease}}]"
+        run: echo "LATEST TAG=${{steps.latesttag.outputs.last_release}} => ${{steps.latesttag.outputs.last_prerelease}}""
+
 
   branchNameAsWorkflow:
     name: TEST BRANCH NAME AS WORKFLOW
