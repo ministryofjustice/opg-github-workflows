@@ -13,11 +13,11 @@ jobs:
     steps:
       - id: version
         name: Get version
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@test-tag
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.8.0-goversion.0 #test-tag
 
-  asWorkflow:
-    name: TEST WORKFLOW
-    uses: ./.github/workflows/data-parse-test-terraform-version.yml
-    with:
-      terraform_directory: "./"
-    secrets: inherit
+  # asWorkflow:
+  #   name: TEST WORKFLOW
+  #   uses: ./.github/workflows/data-parse-test-terraform-version.yml
+  #   with:
+  #     terraform_directory: "./"
+  #   secrets: inherit
