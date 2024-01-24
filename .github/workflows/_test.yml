@@ -29,6 +29,8 @@ jobs:
         uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.8.0-goversion.0 #test-tag
         with:
           terraform_directory: "./terraform/account"
+      - name: "VERSION: [${{steps.version.outputs.version}}]"
+        run: echo "VERSION=${{steps.version.outputs.version}}"
 
   asWorkflow:
     name: TEST WORKFLOW
