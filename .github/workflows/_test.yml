@@ -20,7 +20,7 @@ permissions:
 jobs:
   # BRANCH NAME
   branchNameAsStep:
-    name: BRANCH NAME AS STEP
+    name: TEST BRANCH NAME AS STEP
     runs-on: 'ubuntu-latest'
     steps:
       - id: branchname
