@@ -63,7 +63,7 @@ jobs:
         name: TEST CREATE TAG
         uses: ministryofjustice/opg-github-actions/.github/actions/create-tag@v2.8.0-goversion.0
         with:
-          tag_name: ${{ steps.nextag.outputs.next_tag }}
+          tag_name: ${{ steps.nexttag.outputs.next_tag }}
           commitish: ${{steps.branchname.outputs.branch_name}}
           test: true
       - name: "CREATE TAG: [${{steps.createtag.outputs.requested}} => ${{steps.createtag.outputs.created}}]"
