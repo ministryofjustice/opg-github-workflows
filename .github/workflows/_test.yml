@@ -69,6 +69,20 @@ jobs:
       - name: "CREATE TAG: [${{steps.createtag.outputs.requested}} => ${{steps.createtag.outputs.created}}]"
         run: echo "CREATE TAG=${{steps.createtag.outputs.requested}} => ${{steps.createtag.outputs.success}}"
 
+
+  semverAsStep:
+    name: TEST SEMVER AS STEP
+    runs-on: 'ubuntu-latest'
+    steps:
+      - id: semver
+        name: TEST SEMVER
+        uses: ministryofjustice/opg-github-actions/.github/actions/semver-tag@v2.8.0-goversion.0
+        with:
+          test: true
+          prerelease: true
+          releases_enabled: false
+
+
   branchNameAsWorkflow:
     name: TEST BRANCH NAME AS WORKFLOW
     uses: ./.github/workflows/data-parse-branch-name.yml
