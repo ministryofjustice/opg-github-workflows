@@ -24,6 +24,14 @@ jobs:
     name: TEST BRANCH AND TAGS AS STEPS
     runs-on: 'ubuntu-latest'
     steps:
+      - id: safestrings
+        name: TEST SAFE STRING
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v2.8.0-goversion.0
+        with:
+          original: "very/long/string/that-has-other+characters>=?"
+          length: 10
+      - name: "SAFE STRINGS: [${{steps.safestrings.outputs.original}} => ${{steps.safestrings.outputs.safe}}]"
+        run: echo "SAFE=${{steps.branchname.outputs.original}} => ${{steps.branchname.outputs.safe}}"
       - id: branchname
         name: TEST BRANCH NAME
         uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@v2.8.0-goversion.0
