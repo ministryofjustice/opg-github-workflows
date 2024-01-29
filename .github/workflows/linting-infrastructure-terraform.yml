@@ -18,6 +18,11 @@ on:
         description: "Directory path to lint"
         default: "./terraform"
         required: false
+      tflint_check:
+        type: boolean
+        description: "Enable tflint check"
+        default: true
+        required: false
       terraform_version_file:
         type: string
         description: "File containing the terraform version to use"
@@ -51,6 +56,13 @@ jobs:
         with:
           terraform_version: ${{ steps.tf_version.outputs.TF_VERSION }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
-      - name: "Run Terraform Lint"
+      - name: "Run Terraform fmt"
         working-directory: ${{ inputs.directory }}
-        run: terraform fmt -check -recursive
+        run: terraform fmt -check -recursive  
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        if: ${{ inputs.tflint_check }}
+      - name: "Run TFLint"
+        working-directory: ${{ inputs.directory }}
+        if: ${{ inputs.tflint_check }}
+        run: tflint --recursive
