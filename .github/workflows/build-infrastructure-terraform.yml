@@ -70,11 +70,6 @@ on:
         description: "Directory containing artifacts to be uploaded if persist_artifacts is true"
         required: false
         default: "/tmp/terraform_artifacts"
-      terraform_version_file:
-        type: string
-        description: "Plain text file containing only the terraform version to use"
-        required: false
-        default: "NOT_SET"
 
     outputs:
       terraform_output_as_json:
@@ -120,7 +115,6 @@ jobs:
           echo "| terraform_version | ${{ inputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_workspace | ${{ inputs.terraform_workspace }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| terraform_version_file | ${{ inputs.terraform_version_file }} |"  >> $GITHUB_STEP_SUMMARY
 
           echo "| use_ssh_private_key | ${{ inputs.use_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
 
@@ -151,31 +145,10 @@ jobs:
         uses: actions/checkout@v4
       - name: "Install AWS CLI"
         uses: unfor19/install-aws-cli-action@v1
-      - name: "Parse terraform simple file [file: ${{ inputs.terraform_version_file }}]"
-        id: tf_version_simple
-        if: inputs.terraform_version_file != 'NOT_SET'
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@v2.6.2
-        with:
-          terraform_directory: ${{ inputs.terraform_directory }}
-          terraform_versions_file: ${{ inputs.terraform_version_file }}
-          simple_file: true
-      - name: Set Terraform version
-        id: tf_version
-        env:
-          TF_VER: ${{ inputs.terraform_version }}
-        run: |
-          if [ "${{ inputs.terraform_version_file }}" != "NOT_SET" ]; then
-            echo "Using terraform version file content"
-            echo "TF_VERSION=$(cat ${{ steps.tf_version_simple.outputs.version }})" >> $GITHUB_OUTPUT
-          else
-            echo "Using terraform version from input"
-            echo "TF_VERSION=${TF_VER}" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
       - name: "Setup terraform"
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ steps.tf_version.outputs.TF_VERSION }}
+          terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
       # ssh agent
       - name: Setup SSH private key

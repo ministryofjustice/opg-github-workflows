@@ -18,39 +18,28 @@ on:
         description: "Directory path to lint"
         default: "./terraform"
         required: false
-      terraform_version_file:
-        type: string
-        description: "File containing the terraform version to use"
+      tflint_check:
+        type: boolean
+        description: "Enable tflint check"
+        default: true
         required: false
-        default: "NOT_SET"
 
 jobs:
   terraform_lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set Terraform version
-        id: tf_version
-        env:
-          TF_VERISON_FILE: ${{ inputs.terraform_version_file }}
-          TF_VER: ${{ inputs.terraform_version }}
-        run: |
-          if [ "${TF_VERISON_FILE}" != "NOT_SET" ]; then
-            echo "Using terraform version from file"
-            if [ ! -f "${TF_VERISON_FILE}" ]; then
-              echo "Terraform version file not found"
-              exit 1
-            fi
-            echo "TF_VERSION=$(cat ${TF_VERISON_FILE)" >> $GITHUB_OUTPUT
-          else
-            echo "Using terraform version from input"
-            echo "TF_VERSION=${TF_VER}" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ steps.tf_version.outputs.TF_VERSION }}
+          terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
-      - name: "Run Terraform Lint"
+      - name: "Run Terraform fmt"
         working-directory: ${{ inputs.directory }}
         run: terraform fmt -check -recursive
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        if: ${{ inputs.tflint_check }}
+      - name: "Run TFLint"
+        working-directory: ${{ inputs.directory }}
+        if: ${{ inputs.tflint_check }}
+        run: tflint --recursive
