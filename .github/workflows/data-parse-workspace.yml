@@ -30,10 +30,10 @@ jobs:
     steps:
       - id: branch_setup
         name: Generate branch_setup
-        uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@v3.1.0
+        uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@v3.1.1
       - id: workspace_name
         name: Generate workspace name
-        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v3.1.0
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@v3.1.1
         with:
           original: ${{steps.branch_setup.outputs.branch_name}}
           conditional_match: "main"
