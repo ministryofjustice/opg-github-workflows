@@ -220,6 +220,7 @@ jobs:
         with:
           name: terraform-artifact
           path: ${{ inputs.artifact_directory }}
+          overwrite: true
 
 
       - name: Terraform Outputs
