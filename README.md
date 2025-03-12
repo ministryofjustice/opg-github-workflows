@@ -16,6 +16,7 @@ Managed by opg-org-infra &amp; Terraform
 
 ### Build related
 
+- [Build Multi Architecture Image](./.github/workflows/build-multi-architecture-image.yml) - [example usage](./docs/examples/multi-architecture-build-use.md)
 - [Dependabot Auto Approve](./.github/workflows/automation-build-dependabot-approve-auto-merge.yml)
 - [Plan and Apply Terraform](./.github/workflows/build-infrastructure-terraform.yml)
 
