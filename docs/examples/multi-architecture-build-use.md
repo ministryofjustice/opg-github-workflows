@@ -19,6 +19,10 @@ build:
       cli_commands: make example
 ```
 
+### Note:
+
+When a job references a reusable workflow, the name of the reported check will capture the names of the jobs in both the caller and called workflow. So if you want to use the build job as a reuired status check you must refer to the job as `<parent_job> / <child_job>`. In the above example that would be `Build Image / Build Multi Architecture Image`.
+
 ## Using the Image
 
 ### Setup Docker
