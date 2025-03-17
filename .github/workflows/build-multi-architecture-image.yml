@@ -14,7 +14,7 @@ on:
         required: false
       artifact_name:
         type: string
-        description: "Name for uploaded artifact of image"
+        description: "Name for uploaded artifact of image (this must be unique in the case of bulding more than one multi arch image)"
         default: "multi-arch-image"
         required: false
       artifact_directory:
@@ -56,7 +56,7 @@ jobs:
           - actions_runner: ubuntu-24.04-arm
             tag: ARM64
 
-    name: "Build ${{ matrix.tag }}  Image"
+    name: "${{ inputs.job_name }} ${{ matrix.tag }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@v4
@@ -65,21 +65,19 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Image & Save Cache
-        env:
-          TAG: ${{ matrix.tag }}
         run: |
-          mkdir -p ${{ inputs.artifact_directory }}/cache/${{ matrix.tag }}
+          mkdir -p ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
           ${{ inputs.cli_commands }}
           docker buildx build -t ${{ inputs.image_name }}:${{ matrix.tag }} \
-            --cache-to type=local,dest=${{ inputs.artifact_directory }}/cache/${{ matrix.tag }},mode=max \
+            --cache-to type=local,dest=${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }},mode=max \
             ${{ inputs.build_options }} \
             ${{ inputs.build_path }}
 
       - name: Archive Cache
         uses: actions/upload-artifact@v4
         with:
-          name: cache-${{ matrix.tag }}
-          path: ${{ inputs.artifact_directory }}/cache/${{ matrix.tag }}
+          name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
+          path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
 
   build_multi_arch_image:
     name: ${{ inputs.job_name }}
@@ -97,7 +95,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: ${{ inputs.artifact_directory }}/cache
-          pattern: cache-*
+          pattern: cache-${{ inputs.artifact_name }}-*
           merge-multiple: false
 
       - name: Build & Save Image
@@ -106,8 +104,8 @@ jobs:
           docker build \
             --platform linux/amd64,linux/arm64/v8 \
             --tag ${{ inputs.image_name }}:${{ inputs.image_tag }} \
-            --cache-from type=local,src=${{ inputs.artifact_directory }}/cache/cache-AMD64 \
-            --cache-from type=local,src=${{ inputs.artifact_directory }}/cache/cache-ARM64 \
+            --cache-from type=local,src=${{ inputs.artifact_directory }}/cache/cache-${{ inputs.artifact_name }}-AMD64 \
+            --cache-from type=local,src=${{ inputs.artifact_directory }}/cache/cache-${{ inputs.artifact_name }}-ARM64 \
             ${{ inputs.build_options }} \
             ${{ inputs.build_path }}
           docker save -o ${{ inputs.artifact_directory }}/${{ inputs.artifact_name }}.tar ${{ inputs.image_name }}:${{ inputs.image_tag }}
