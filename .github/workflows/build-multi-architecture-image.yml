@@ -59,7 +59,7 @@ jobs:
     name: "${{ inputs.job_name }} ${{ matrix.tag }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -74,7 +74,7 @@ jobs:
             ${{ inputs.build_path }}
 
       - name: Archive Cache
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
           path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build_single_images]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Docker
         run: |
@@ -92,7 +92,7 @@ jobs:
           sudo systemctl restart docker
           docker run --privileged --rm tonistiigi/binfmt --install all
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.2.1
         with:
           path: ${{ inputs.artifact_directory }}/cache
           pattern: cache-${{ inputs.artifact_name }}-*
@@ -111,7 +111,7 @@ jobs:
           docker save -o ${{ inputs.artifact_directory }}/${{ inputs.artifact_name }}.tar ${{ inputs.image_name }}:${{ inputs.image_tag }}
 
       - name: Archive image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ inputs.artifact_name }}
           path: |

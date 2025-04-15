@@ -55,7 +55,7 @@ jobs:
         terraform_path: ${{ fromJSON(inputs.terraform_path) }}
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 2
       - name: tfsec with pr comments

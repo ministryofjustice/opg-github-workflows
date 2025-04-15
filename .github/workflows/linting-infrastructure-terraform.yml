@@ -28,8 +28,8 @@ jobs:
   terraform_lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v4.2.2
+      - uses: hashicorp/setup-terraform@v3.1.2
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
@@ -37,7 +37,7 @@ jobs:
         working-directory: ${{ inputs.directory }}
         run: terraform fmt -check -recursive
       - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+        uses: terraform-linters/setup-tflint@v4.1.1
         if: ${{ inputs.tflint_check }}
       - name: "Run TFLint"
         working-directory: ${{ inputs.directory }}
