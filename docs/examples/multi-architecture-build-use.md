@@ -42,7 +42,7 @@ First set up docker to enable multi architecture images to be used, the setup bu
 Then download the artifact with the download artifact action and load the image into docker (remember to change the artifact name if you changed it from the default earlier).
 
 ```
-- uses: actions/download-artifact@v4
+- uses: actions/download-artifact@<digest>
   with:
     path: /tmp/images
     name: multi-arch-image
