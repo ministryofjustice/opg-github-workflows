@@ -70,7 +70,7 @@ jobs:
             check: '${{ matrix.path }}/**'
       - name: Setup PHP with tools
         if: steps.filter.outputs.check == 'true'
-        uses: shivammathur/setup-php@v2.33.0
+        uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # 2.34.1
         with:
           php-version: ${{inputs.php_version}}
           tools: vimeo/psalm
@@ -84,6 +84,6 @@ jobs:
         run: psalm --output-format=github --taint-analysis --report=psalm-results.sarif
       - name: Upload Security Analysis results to GitHub
         if: steps.filter.outputs.check == 'true'
-        uses: github/codeql-action/upload-sarif@45775bd8235c68ba998cffa5171334d58593da47 # v3.28.15
+        uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
         with:
           sarif_file: ${{ matrix.path }}/psalm-results.sarif
