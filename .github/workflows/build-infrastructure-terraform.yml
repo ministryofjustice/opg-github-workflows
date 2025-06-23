@@ -152,13 +152,13 @@ jobs:
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
       # ssh agent
       - name: Setup SSH private key
-        uses: webfactory/ssh-agent@d4b9b8ff72958532804b70bbe600ad43b36d5f2e # v0.8.0
+        uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
         if: inputs.use_ssh_private_key == true
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       # aws credentials
       - name: Configure AWS Credentials For Terraform
-        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
@@ -191,7 +191,7 @@ jobs:
       - id: register_workspace
         if: inputs.is_ephemeral == true
         name: Register ephemeral workspace
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-workspace-manager@9698787723a6a964ef9816066d9299568d8d359e # v3.1.0
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-workspace-manager@464975f6f9e628ffcece3db87ecb819d8d391ab6 # v3.1.6
         with:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
