@@ -1,0 +1,230 @@
+name: "[Build - Infrastructure] Terraform Plan And Build"
+
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        type: string
+        description: "Version of terraform to use"
+        required: true
+      terraform_wrapper:
+        type: boolean
+        description: "Enable terraform wrapper"
+        default: false
+        required: false
+      terraform_directory:
+        type: string
+        description: "Directory to run terraform from"
+        default: "./terraform"
+        required: false
+      terraform_workspace:
+        type: string
+        description: "Terraform workspace to use"
+        required: true
+      terraform_apply:
+        type: boolean
+        description: "Boolean to determine if we this runs the apply when true"
+        default: false
+        required: false
+      terraform_variables:
+        type: string
+        description: 'String of terraform variables (-var="foo=bar") to use on commands'
+        required: false
+        default: ""
+      aws_region:
+        type: string
+        description: "AWS region to use in creds"
+        default: "eu-west-1"
+        required: false
+      workspace_manager_aws_account_id:
+        type: string
+        description: "AWS account id to use for workspace manager"
+        default: ""
+        required: false
+      workspace_manager_aws_iam_role:
+        type: string
+        description: "AWS iam role used for workspace manager"
+        default: ""
+        required: false
+      workspace_manager_protection_duration:
+        type: string
+        description: "Number of hours to protect the workspace for. Defaults to 24"
+        required: false
+        default: "24"
+      is_ephemeral:
+        type: boolean
+        description: "Flag used to decide if the workspace should be registered for cleanup later"
+        required: true
+      use_ssh_private_key:
+        type: boolean
+        description: "Flag used to decide if the workflow should use the SSH_PRIVATE_KEY secret"
+        required: false
+        default: false
+      persist_artifacts:
+        type: boolean
+        description: "Upload the artiacts in the artifact_directory"
+        required: false
+        default: false
+      artifact_directory:
+        type: string
+        description: "Directory containing artifacts to be uploaded if persist_artifacts is true"
+        required: false
+        default: "/tmp/terraform_artifacts"
+      oidc_role_to_assume:
+        type: string
+        description: "OIDC role to use when assuming a role for terraform actions"
+        required: false
+
+    outputs:
+      terraform_output_as_json:
+        description: "terraform output as json string"
+        value: ${{ tojson(jobs.terraform_plan_and_apply.outputs.terraform_output_as_json) }}
+
+    secrets:
+      PAGERDUTY_TOKEN:
+        required: true
+      GITHUB_ACCESS_TOKEN:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: false
+
+jobs:
+  config:
+    name: "Workflow Config"
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: "Summary"
+        run: |
+          echo "### Config" >> $GITHUB_STEP_SUMMARY
+          echo "| Option | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| aws_region | ${{ inputs.aws_region }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| is_ephemeral | ${{ inputs.is_ephemeral }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_apply | ${{ inputs.terraform_apply }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_directory | ${{ inputs.terraform_directory }} |"  >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "${{ inputs.terraform_variables }}" ]; then
+            echo "| terraform_variables | SET |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| terraform_variables | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "| terraform_version | ${{ inputs.terraform_version }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_workspace | ${{ inputs.terraform_workspace }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| terraform_wrapper | ${{ inputs.terraform_wrapper }} |"  >> $GITHUB_STEP_SUMMARY
+
+          echo "| use_ssh_private_key | ${{ inputs.use_ssh_private_key }} |"  >> $GITHUB_STEP_SUMMARY
+
+          echo "| persist_artifacts | ${{ inputs.persist_artifacts }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| artifact_directory | ${{ inputs.artifact_directory }} |"  >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "${{ inputs.workspace_manager_aws_account_id }}" ]; then
+            echo "| workspace_manager_aws_account_id | SET |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| workspace_manager_aws_account_id | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -n "${{ inputs.workspace_manager_aws_iam_role }}" ]; then
+            echo "| workspace_manager_aws_iam_role | SET |"  >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| workspace_manager_aws_iam_role | NOT_SET |"  >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "| workspace_manager_protection_duration | ${{ inputs.workspace_manager_protection_duration }} |"  >> $GITHUB_STEP_SUMMARY
+
+  terraform_plan_and_apply:
+    name: "[Build - Infrastructure] Terraform Plan And Apply"
+    runs-on: ubuntu-latest
+    needs: [config]
+    outputs:
+      terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: "Install AWS CLI"
+        uses: unfor19/install-aws-cli-action@e8b481e524a99f37fbd39fdc1dcb3341ab091367 # v1.0.7
+
+      - name: "Setup terraform"
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: ${{ inputs.terraform_wrapper }}
+
+      - name: Setup SSH private key
+        uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+        if: inputs.use_ssh_private_key == true
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Configure AWS Credentials For Terraform
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          role-duration-seconds: 3600
+          role-session-name: OPGTerraformGithubAction
+          role-to-assume: ${{ inputs.oidc_role_to_assume}}
+
+      - name: Terraform Init
+        run: |
+          terraform init -lock-timeout=300s -input=false
+        working-directory: ${{ inputs.terraform_directory }}
+
+      - name: Terraform List Workspaces
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          terraform workspace list
+        working-directory: ${{ inputs.terraform_directory }}
+
+      - name: Terraform Plan
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
+          TF_VAR_circleci_token: ${{ secrets.CIRCLECI_TOKEN }}
+          TF_INPUT_VARS: ${{ inputs.terraform_variables }}
+        run: |
+          terraform workspace show
+          terraform plan -lock-timeout=300s -input=false -parallelism=30 ${TF_INPUT_VARS} -out=terraform.plan
+        working-directory: ${{ inputs.terraform_directory }}
+
+      - id: register_workspace
+        if: inputs.is_ephemeral == true
+        name: Register ephemeral workspace
+        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-workspace-manager@464975f6f9e628ffcece3db87ecb819d8d391ab6 # v3.1.6
+        with:
+          aws_account_id: ${{ inputs.workspace_manager_aws_account_id }}
+          aws_iam_role: ${{ inputs.workspace_manager_aws_iam_role }}
+          register_workspace: ${{ inputs.terraform_workspace }}
+          time_to_protect: ${{ inputs.workspace_manager_protection_duration }}
+
+      - name: Terraform Apply
+        if: inputs.terraform_apply == true
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
+          TF_VAR_circleci_token: ${{ secrets.CIRCLECI_TOKEN }}
+          TF_INPUT_VARS: ${{ inputs.terraform_variables }}
+        run: |
+          terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${TF_INPUT_VARS} terraform.plan
+        working-directory: ${{ inputs.terraform_directory }}
+
+      - name: Persist Terraform Artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: inputs.persist_artifacts == true
+        with:
+          name: terraform-artifact
+          path: ${{ inputs.artifact_directory }}
+          overwrite: true
+
+      - name: Terraform Outputs
+        id: terraform_outputs
+        env:
+          TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+        run: |
+          echo "terraform_output_as_json<<EOF" >> $GITHUB_OUTPUT
+          terraform output -json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        working-directory: ${{ inputs.terraform_directory }}
