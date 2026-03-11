@@ -182,7 +182,6 @@ jobs:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
           TF_VAR_github_token: ${{ secrets.GITHUB_ACCESS_TOKEN }}
           TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
-          TF_VAR_circleci_token: ${{ secrets.CIRCLECI_TOKEN }}
           TF_INPUT_VARS: ${{ inputs.terraform_variables }}
         run: |
           terraform workspace show
@@ -205,7 +204,6 @@ jobs:
           TF_WORKSPACE: ${{ inputs.terraform_workspace }}
           TF_VAR_github_token: ${{ secrets.GITHUB_ACCESS_TOKEN }}
           TF_VAR_pagerduty_token: ${{ secrets.PAGERDUTY_TOKEN }}
-          TF_VAR_circleci_token: ${{ secrets.CIRCLECI_TOKEN }}
           TF_INPUT_VARS: ${{ inputs.terraform_variables }}
         run: |
           terraform apply -lock-timeout=300s -input=false -auto-approve -parallelism=30 ${TF_INPUT_VARS} terraform.plan
