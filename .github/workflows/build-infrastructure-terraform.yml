@@ -70,6 +70,10 @@ on:
         description: "Directory containing artifacts to be uploaded if persist_artifacts is true"
         required: false
         default: "/tmp/terraform_artifacts"
+      oidc_role_to_assume:
+        type: string
+        description: "OIDC role to use when assuming a role for terraform actions"
+        required: false
 
     outputs:
       terraform_output_as_json:
@@ -78,9 +82,9 @@ on:
 
     secrets:
       AWS_ACCESS_KEY_ID_ACTIONS:
-        required: true
+        required: false
       AWS_SECRET_ACCESS_KEY_ACTIONS:
-        required: true
+        required: false
       PAGERDUTY_TOKEN:
         required: true
       GITHUB_ACCESS_TOKEN:
@@ -165,6 +169,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
           aws-region: ${{ inputs.aws_region }}
+          role-to-assume: ${{ inputs.oidc_role_to_assume}}
           role-duration-seconds: 3600
           role-session-name: OPGTerraformGithubAction
 
