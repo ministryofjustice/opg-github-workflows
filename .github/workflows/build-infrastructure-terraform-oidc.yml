@@ -82,9 +82,9 @@ on:
 
     secrets:
       PAGERDUTY_TOKEN:
-        required: true
+        required: false
       GITHUB_ACCESS_TOKEN:
-        required: true
+        required: false
       SSH_PRIVATE_KEY:
         required: false
 
