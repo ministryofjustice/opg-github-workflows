@@ -48,7 +48,7 @@ jobs:
     steps:
       - id: truncate
         name: Truncate branch name
-        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@464975f6f9e628ffcece3db87ecb819d8d391ab6 # v3.1.6
+        uses: ministryofjustice/opg-github-actions/.github/actions/safe-strings@4daa651011e6595c5b9689c4ff634cd15221a206 # v4.3.11
         with:
           original: ${{ inputs.branch_name }}
           length: 12
