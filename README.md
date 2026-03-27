@@ -25,8 +25,6 @@ Managed by opg-org-infra &amp; Terraform
 - [Add index to a matrix](./.github/workflows/data-parse-add-index.yml) - Untested
 - [Parse branch name](./.github/workflows/data-parse-branch-name.yml)
 - [Parse terraform version](./.github/workflows/data-parse-terraform-version.yml)
-- [Parse terraform workspace](./.github/workflows/data-parse-workspace.yml)
-- [Parse semver tag](./.github/workflows/release-semver-tag.yml) - Recommend [using the composite action version instead](https://github.com/ministryofjustice/opg-github-actions/blob/main/.github/actions/semver-tag/README.md)
 
 ### Linting related
 

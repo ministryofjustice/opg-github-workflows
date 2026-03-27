@@ -24,11 +24,19 @@ jobs:
   # generate semver tag
   semver_tag:
     needs: [lint_yaml, branch_name]
-    name: "Tag [${{ needs.branch_name.outputs.branch_name }}]"
-    uses: ./.github/workflows/data-parse-semver-tag.yml
-    with:
-      branch_name: ${{ needs.branch_name.outputs.branch_name }}
-    secrets: inherit
+    name: "Generate semver tag and release"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: "0"
+      - name: Generate semver tag and release
+        uses: ministryofjustice/opg-github-actions/actions/semver@b8868247a908f74fafe1905701391580575a6d35 # v4.3.10
+        with:
+          branch_name: ${{ needs.branch_name.outputs.branch_name }}
+          create_release: false
+          default_bump: ${{ github.event_name == 'workflow_dispatch' && 'none' || 'minor' }}
+          prerelease: ${{ github.ref_name == 'main' && 'false' || 'true' }}
   # Output summary data
   summary:
     if: always()
@@ -46,8 +54,6 @@ jobs:
           echo "| Branch | Safe | ${{ needs.branch_name.outputs.safe }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Branch | Full Length | ${{ needs.branch_name.outputs.full_length }} |"  >> $GITHUB_STEP_SUMMARY
           echo "| Semver | Tag | ${{ needs.semver_tag.outputs.tag }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Semver | New Tag | ${{ needs.semver_tag.outputs.new_tag }} |"  >> $GITHUB_STEP_SUMMARY
-          echo "| Semver | Pre-release | ${{ needs.semver_tag.outputs.prerelease }} |"  >> $GITHUB_STEP_SUMMARY
 
   end:
     name: 'End of PR workflow'
