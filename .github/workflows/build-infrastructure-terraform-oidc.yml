@@ -191,7 +191,7 @@ jobs:
       - id: register_workspace
         if: inputs.is_ephemeral == true
         name: Register ephemeral workspace
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-workspace-manager@464975f6f9e628ffcece3db87ecb819d8d391ab6 # v3.1.6
+        uses: ministryofjustice/opg-github-actions/actions/terraform-workspace-manager@821b6f92327f0f195276860676aa8133d63f39dd # v4.5.1
         with:
           aws_account_id: ${{ inputs.workspace_manager_aws_account_id }}
           aws_iam_role: ${{ inputs.workspace_manager_aws_iam_role }}

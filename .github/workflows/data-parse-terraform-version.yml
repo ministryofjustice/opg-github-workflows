@@ -14,7 +14,7 @@ on:
         default: "./versions.tf"
     outputs:
       version:
-        description: 'Discovered terraform version range. This may be an exact number (like 1.5.5) or a semver range (like >= 1.0).'
+        description: "Discovered terraform version range. This may be an exact number (like 1.5.5) or a semver range (like >= 1.0)."
         value: ${{ jobs.discover_version_semver_range.outputs.version }}
 
 permissions:
@@ -32,7 +32,6 @@ permissions:
 defaults:
   run:
     shell: bash
-
 
 jobs:
   config_summary:
@@ -56,11 +55,10 @@ jobs:
     steps:
       - id: version
         name: Get version
-        uses: ministryofjustice/opg-github-actions/.github/actions/terraform-version@464975f6f9e628ffcece3db87ecb819d8d391ab6 # v3.1.6
+        uses: ministryofjustice/opg-github-actions/actions/terraform-version@821b6f92327f0f195276860676aa8133d63f39dd # v4.5.1
         with:
           terraform_directory: ${{inputs.terraform_directory}}
           terraform_versions_file: ${{inputs.terraform_versions_file}}
-
 
   results:
     name: "Results"
