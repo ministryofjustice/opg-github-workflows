@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       push_to_github_env:
-        description: 'Boolean to push the clean branch name into $GITHUB_ENV as $BRANCH_NAME'
+        description: "Boolean to push the clean branch name into $GITHUB_ENV as $BRANCH_NAME"
         type: boolean
         default: false
         required: false
@@ -15,12 +15,11 @@ on:
         description: The original branch name with output any modification.'
         value: ${{ jobs.branch_name.outputs.branch_name }}
       full_length:
-        description: 'Alphanumeric, lowercase, but full length version of the original string.'
+        description: "Alphanumeric, lowercase, but full length version of the original string."
         value: ${{ jobs.branch_name.outputs.full_length }}
       safe:
-        description: 'Alphanumeric and lowercase version of the original, trimmed to 12 characters.'
+        description: "Alphanumeric and lowercase version of the original, trimmed to 12 characters."
         value: ${{ jobs.branch_name.outputs.safe }}
-
 
 permissions:
   contents: read
@@ -48,7 +47,7 @@ jobs:
           echo "| push_to_github_env | ${{ inputs.push_to_github_env }} |"  >> $GITHUB_STEP_SUMMARY
 
   branch_name:
-    name: 'Use github data to generate a clean branch name'
+    name: "Use github data to generate a clean branch name"
     runs-on: ubuntu-latest
     outputs:
       branch_name: ${{ steps.get_branch_name.outputs.branch_name }}
@@ -57,18 +56,18 @@ jobs:
     steps:
       - id: get_branch_name
         name: Parse branch name
-        uses: ministryofjustice/opg-github-actions/.github/actions/branch-name@464975f6f9e628ffcece3db87ecb819d8d391ab6 # v3.1.6
+        uses: ministryofjustice/opg-github-actions/actions/branch-name@821b6f92327f0f195276860676aa8133d63f39dd # v4.5.1
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
           echo BRANCH_NAME=${{ steps.get_branch_name.outputs.full_length }} >> $GITHUB_ENV
 
   results:
-    name: 'Results'
+    name: "Results"
     runs-on: ubuntu-latest
     needs: [branch_name]
     steps:
-      - name: 'Summary'
+      - name: "Summary"
         if: always()
         run: |
           echo "### Branch Name Results" >> $GITHUB_STEP_SUMMARY
