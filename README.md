@@ -11,8 +11,6 @@ Managed by opg-org-infra &amp; Terraform
 
 - [CodeQL to Github Security Tab](./.github/workflows/analysis-application-codeql-sast-to-github-security.yml)
 - [PHP Psalm  to Github Security Tab](./.github/workflows/analysis-application-php-psalm-sast-to-github-security.yml)
-- [TFSec PR feedback](./.github/workflows/analysis-infrastructure-tfsec-pr-feedback.yml)
-- [TFSec to Github Security Tab](./.github/workflows/analysis-infrastructure-tfsec-to-github-security.yml)
 
 ### Build related
 
