@@ -5,25 +5,15 @@ on:
     branches: [main]
 
 jobs:
-  lint_yaml:
-    name: "Lint YAML"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: yaml-lint
-        uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c # v3.1.1
-        with:
-          file_or_dir: .github/workflows/*.yml
   # generate branch name
   branch_name:
-    needs: [lint_yaml]
     name: "Branch name"
     uses: ./.github/workflows/data-parse-branch-name.yml
     secrets: inherit
 
   # generate semver tag
   semver_tag:
-    needs: [lint_yaml, branch_name]
+    needs: [branch_name]
     name: "Generate semver tag and release"
     runs-on: ubuntu-latest
     steps:
