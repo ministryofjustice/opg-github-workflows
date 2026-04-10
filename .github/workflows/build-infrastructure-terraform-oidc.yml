@@ -157,7 +157,7 @@ jobs:
           deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Configure AWS Credentials For Terraform
-        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
         with:
           aws-region: ${{ inputs.aws_region }}
           role-duration-seconds: 3600
