@@ -153,11 +153,10 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
 
-      - name: Setup SSH private key
-        uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+      - uses: ministryofjustice/opg-github-actions/actions/github-deploy-key@ceeda9d30ec7f6705c819d0b7664b9a79df99a3b # v4.8.0
         if: inputs.use_ssh_private_key == true
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Configure AWS Credentials For Terraform
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
