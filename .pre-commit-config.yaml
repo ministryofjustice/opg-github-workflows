@@ -15,3 +15,8 @@ repos:
     rev: 1f9dca43926cb1476beab1d382a26e913762bf8d # frozen: 43.115.0
     hooks:
       - id: renovate-config-validator
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: 68e8b45440415753fff70a312ece8da92ba85b4a  # frozen: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
