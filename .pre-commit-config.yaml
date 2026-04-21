@@ -2,24 +2,16 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-  - repo: https://github.com/awslabs/git-secrets
-    rev: master
-    hooks:
-      - id: git-secrets
-  - repo: https://github.com/zricethezav/gitleaks
-    rev: v8.8.4
-    hooks:
-      - id: gitleaks
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.28.0
+    rev: cba56bcde1fdd01c1deb3f945e69764c291a6530 # frozen: v1.38.0
     hooks:
       - id: yamllint
         args: [-c=.yamllint]
   - repo: https://github.com/renovatebot/pre-commit-hooks
-    rev: 39.227.2
+    rev: 1f9dca43926cb1476beab1d382a26e913762bf8d # frozen: 43.115.0
     hooks:
       - id: renovate-config-validator
