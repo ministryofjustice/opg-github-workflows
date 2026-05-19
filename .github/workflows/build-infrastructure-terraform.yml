@@ -150,7 +150,7 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
 
-      - uses: ministryofjustice/opg-github-actions/actions/github-deploy-key@ceeda9d30ec7f6705c819d0b7664b9a79df99a3b # v4.8.0
+      - uses: ministryofjustice/opg-github-actions/actions/github-deploy-key@9e8b7c2fb29c11e77b12913f74459fa48b11829f # v4.8.2
         if: inputs.use_ssh_private_key == true
         with:
           deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -193,7 +193,7 @@ jobs:
       - id: register_workspace
         if: inputs.is_ephemeral == true
         name: Register ephemeral workspace
-        uses: ministryofjustice/opg-github-actions/actions/terraform-workspace-manager@ceeda9d30ec7f6705c819d0b7664b9a79df99a3b # v4.8.0
+        uses: ministryofjustice/opg-github-actions/actions/terraform-workspace-manager@9e8b7c2fb29c11e77b12913f74459fa48b11829f # v4.8.2
         with:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID_ACTIONS }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ACTIONS }}
