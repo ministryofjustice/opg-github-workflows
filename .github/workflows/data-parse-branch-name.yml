@@ -56,7 +56,7 @@ jobs:
     steps:
       - id: get_branch_name
         name: Parse branch name
-        uses: ministryofjustice/opg-github-actions/actions/branch-name@ceeda9d30ec7f6705c819d0b7664b9a79df99a3b # v4.8.0
+        uses: ministryofjustice/opg-github-actions/actions/branch-name@9e756945a9e2b6ac5dc81473b01f8b38600e6ed6 # v4.8.6
       - name: Push to GITHUB_ENV
         if: inputs.push_to_github_env
         run: |
