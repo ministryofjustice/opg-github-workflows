@@ -140,7 +140,7 @@ jobs:
       terraform_output_as_json: ${{ steps.terraform_outputs.outputs.terraform_output_as_json }}
     steps:
       - name: "Checkout"
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         
       - name: "Setup terraform"
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
