@@ -179,7 +179,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
 
-    name: ${{ inputs.job_name }} ${{ matrix.tag }}
+    name: ${{ inputs.job_name }}
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
