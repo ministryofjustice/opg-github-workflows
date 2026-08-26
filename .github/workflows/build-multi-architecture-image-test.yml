@@ -151,7 +151,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
 
-    name: "${{ inputs.job_name }} ${{ matrix.tag }}"
+    name: ${{ inputs.job_name }}
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -191,6 +191,7 @@ jobs:
         run: |
           ${{ inputs.cli_commands }}
           mkdir -p ${{ inputs.artifact_directory }}
+          echo "Building ${{ matrix.platform }} as ${{ matrix.tag }}"
           BUILD_TARGET_OPTION=""
           if [ -n "${BUILD_TARGET}" ]; then
             BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
@@ -219,7 +220,7 @@ jobs:
         if: steps.snyk_cache.outputs.cache-hit == 'true'
         run: docker load --input ${{ inputs.artifact_directory }}/snyk-cache/snyk-image.tar
 
-      - name: Scan Native Image With Snyk
+      - name: Snyk Container Test
         uses: ministryofjustice/opg-github-actions/actions/snyk-scan@ba13822b29c93ec21d9d19e7ca2a8b17f6fe4beb
         with:
           SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ inputs.image_tag }}-${{ matrix.tag }}
