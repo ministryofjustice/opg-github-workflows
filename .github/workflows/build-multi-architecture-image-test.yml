@@ -22,6 +22,11 @@ on:
         description: "Dockerfile target stage to build"
         default: ""
         required: false
+      enable_registry_cache:
+        type: boolean
+        description: "Enable remote registry cache read/write during architecture builds"
+        default: true
+        required: false
       artifact_directory:
         type: string
         description: "Directory to store built images and build cache"
@@ -218,11 +223,14 @@ jobs:
           if [ -n "${BUILD_TARGET}" ]; then
             BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
           fi
+          CACHE_OPTIONS=""
+          if [ "${{ inputs.enable_registry_cache }}" = "true" ]; then
+            CACHE_OPTIONS="--cache-from type=registry,ref=${CACHE_REF} --cache-to type=registry,ref=${CACHE_REF},mode=max"
+          fi
           docker buildx build \
             --platform ${{ matrix.platform }} \
             --tag "${IMAGE_REF}" \
-            --cache-from "type=registry,ref=${CACHE_REF}" \
-            --cache-to "type=registry,ref=${CACHE_REF},mode=max" \
+            ${CACHE_OPTIONS} \
             --load \
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
