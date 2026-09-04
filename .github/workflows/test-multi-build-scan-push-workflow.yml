@@ -146,23 +146,17 @@ jobs:
 
       - name: Login to ECR (Build Role)
         if: ${{ inputs.oidc_role_to_assume_build != '' }}
-        env:
-          IMAGE_NAME: ${{ inputs.image_name }}
-        run: |
-          ECR_REGISTRY="${IMAGE_NAME%%/*}"
-          aws ecr get-login-password --region "${{ inputs.aws_region }}" \
-            | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
       - name: Restore Snyk Image Cache
         if: ${{ inputs.enable_snyk_scanning }}
-        id: snyk_cache_restore
-        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ${{ inputs.artifact_directory }}/snyk-cache
           key: snyk_cache_${{ runner.os }}_${{ runner.arch }}
           restore-keys: snyk_cache_${{ runner.os }}_
 
-      - name: Restore or Pull Snyk Image
+      - name: Pull Snyk ECR Image if cache unavailable
         if: ${{ inputs.enable_snyk_scanning }}
         env:
           AWS_REGION: ${{ inputs.aws_region }}
@@ -186,14 +180,6 @@ jobs:
             docker save "${SNYK_REGISTRY}/${SNYK_IMAGE}" --output "${SNYK_CACHE_PATH}"
             echo "Pulled Snyk from ECR and cached"
           fi
-
-      - name: Save Snyk Image to Cache
-        if: ${{ inputs.enable_snyk_scanning && hashFiles(format('{0}/snyk-cache/snyk.tar', inputs.artifact_directory)) != '' }}
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        with:
-          path: ${{ inputs.artifact_directory }}/snyk-cache
-          key: snyk_cache_${{ runner.os }}_${{ runner.arch }}
-          save-only: true
 
       - name: Build Image & Save Cache
         env:
@@ -224,45 +210,42 @@ jobs:
 
       - name: Scan with Snyk
         if: ${{ inputs.enable_snyk_scanning }}
-        env:
-          IMAGE_NAME: ${{ inputs.image_name }}
-          TAG: ${{ matrix.tag }}
+        id: snyk_scan
+        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@9e756945a9e2b6ac5dc81473b01f8b38600e6ed6 # v4.8.6
+        with:
+          SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ matrix.tag }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          SNYK_IMAGE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
-          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path }}
-          SNYK_CONTAINER_OPTIONS: ${{ inputs.snyk_container_options }}
-        run: |
-          if [ -f "${SNYK_IMAGE_PATH}" ] && [ -n "${SNYK_TOKEN}" ]; then
-            SNYK_REGISTRY_IMAGE=$(docker load --input "${SNYK_IMAGE_PATH}" 2>&1 | grep -oP 'Loaded image: \K\S+' || echo "")
-            if [ -n "${SNYK_REGISTRY_IMAGE}" ]; then
-              mkdir -p test-results
-
-              POLICY_OPTION=""
-              if [ -n "${SNYK_POLICY_PATH}" ]; then
-                if [ "${SNYK_POLICY_PATH#/}" = "${SNYK_POLICY_PATH}" ]; then
-                  POLICY_OPTION="--policy-path=${GITHUB_WORKSPACE}/${SNYK_POLICY_PATH}"
-                else
-                  POLICY_OPTION="--policy-path=${SNYK_POLICY_PATH}"
-                fi
-              fi
-
-              docker run --rm \
-                -e SNYK_TOKEN="${SNYK_TOKEN}" \
-                -v "${GITHUB_WORKSPACE}:/workspace" \
-                "${SNYK_REGISTRY_IMAGE}" container test "${IMAGE_NAME}:${TAG}" \
-                --format=sarif \
-                --output="/workspace/test-results/snyk-${TAG}.sarif" \
-                ${POLICY_OPTION} \
-                ${SNYK_CONTAINER_OPTIONS} || true
-            fi
-          fi
+          snyk_policy_path: ${{ inputs.snyk_policy_path }}
+          snyk_test_args: ${{ inputs.snyk_container_options }}
+          sarif_filepath: test-results
+          sarif_filename: snyk-${{ matrix.tag }}.sarif
 
       - name: Upload Snyk Scan Results
-        if: ${{ inputs.enable_snyk_scanning && hashFiles(format('test-results/snyk-{0}.sarif', matrix.tag)) != '' }}
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_scan.outcome == 'success' && hashFiles(format('test-results/snyk-{0}.sarif', matrix.tag)) != '' }}
         uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
         with:
           category: "snyk-${{ matrix.tag }}"
           sarif_file: "test-results/snyk-${{ matrix.tag }}.sarif"
+
+      - name: Configure AWS Credentials (Push Role)
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: 3600
+          role-session-name: OPGDockerPushGithubAction
+          role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
+
+      - name: Login to ECR (Push Role)
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Push Image
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        env:
+          IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
+        run: docker push "${IMAGE_REF}"
 
       - name: Archive Cache
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -302,12 +285,7 @@ jobs:
 
       - name: Login to ECR (Push Role)
         if: ${{ inputs.oidc_role_to_assume_push != '' }}
-        env:
-          IMAGE_NAME: ${{ inputs.image_name }}
-        run: |
-          ECR_REGISTRY="${IMAGE_NAME%%/*}"
-          aws ecr get-login-password --region "${{ inputs.aws_region }}" \
-            | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
       - name: Build & Save Image
         env:
@@ -338,6 +316,12 @@ jobs:
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
           docker save -o "${ARTIFACT_DIRECTORY}/${ARTIFACT_NAME}.tar" "${IMAGE_REF}"
+
+      - name: Push Image
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        env:
+          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+        run: docker push "${IMAGE_REF}"
 
       - name: Archive image
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
