@@ -45,7 +45,13 @@ on:
       job_name:
         type: string
         description: "Prefix for the Docker build job display name"
-        default: "Docker Build and Scan"
+        default: "Docker Build, Scan and Push"
+        required: false
+
+      image_display_name:
+        type: string
+        description: "Optional image name to display in the job title, without the ECR registry"
+        default: ""
         required: false
 
       build_target:
@@ -127,7 +133,7 @@ jobs:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
-    name: "${{ inputs.job_name }} / ${{ inputs.image_name }}"
+    name: "${{ inputs.job_name }} / ${{ inputs.image_display_name || inputs.image_name }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -253,7 +259,7 @@ jobs:
           path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
 
   build_multi_arch_image:
-    name: ${{ inputs.job_name }} / ${{ inputs.image_name }}
+    name: ${{ inputs.job_name }} / ${{ inputs.image_display_name || inputs.image_name }}
     runs-on: ubuntu-latest
     needs: [build_single_images]
     if: ${{ fromJSON(inputs.build_targets)[1] != null }}
