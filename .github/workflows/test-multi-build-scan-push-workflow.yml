@@ -44,8 +44,8 @@ on:
 
       job_name:
         type: string
-        description: "Name of build image job for checking status against"
-        default: "Build Multi Architecture Image"
+        description: "Prefix for the Docker build job display name"
+        default: "Docker Build and Scan"
         required: false
 
       build_target:
@@ -127,7 +127,7 @@ jobs:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
-    name: "${{ inputs.image_name }}"
+    name: "${{ inputs.job_name }} / ${{ inputs.image_name }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -236,7 +236,6 @@ jobs:
           role-duration-seconds: 3600
           role-session-name: OPGDockerPushGithubAction
           role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
-
       - name: Login to ECR (Push Role)
         if: ${{ inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
@@ -254,7 +253,7 @@ jobs:
           path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
 
   build_multi_arch_image:
-    name: ${{ inputs.image_name }}
+    name: ${{ inputs.job_name }} / ${{ inputs.image_name }}
     runs-on: ubuntu-latest
     needs: [build_single_images]
     if: ${{ fromJSON(inputs.build_targets)[1] != null }}
