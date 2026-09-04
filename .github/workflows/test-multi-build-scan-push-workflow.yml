@@ -1,0 +1,365 @@
+name: "[Build - Docker] Build Multi Architecture Image"
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        type: string
+        description: "Name of built image"
+        required: true
+
+      image_tag:
+        type: string
+        description: "Tag of built image"
+        default: "latest"
+        required: false
+
+      artifact_name:
+        type: string
+        description: "Name for uploaded artifact of image (this must be unique in the case of building more than one multi arch image)"
+        default: "multi-arch-image"
+        required: false
+
+      artifact_directory:
+        type: string
+        description: "Directory to store built images and build cache"
+        default: "/tmp/images"
+        required: false
+
+      build_options:
+        type: string
+        description: "A list of docker build options"
+        required: false
+
+      build_path:
+        type: string
+        description: "Build path for docker context"
+        default: "."
+        required: false
+
+      cli_commands:
+        type: string
+        description: "Any cli commands that might need to be run before a build such as make targets"
+        required: false
+
+      job_name:
+        type: string
+        description: "Prefix for the Docker build job display name"
+        default: "Docker Build, Scan and Push"
+        required: false
+
+      image_display_name:
+        type: string
+        description: "Optional image name to display in the job title, without the ECR registry"
+        default: ""
+        required: false
+
+      build_target:
+        type: string
+        description: "Dockerfile target stage to build (optional)"
+        default: ""
+        required: false
+
+      build_targets:
+        type: string
+        description: "JSON array of build targets. Pass multiple entries to enable multi-architecture builds. Each entry: {actions_runner, platform, tag}"
+        default: '[{"actions_runner":"ubuntu-latest","platform":"linux/amd64","tag":"AMD64"}]'
+        required: false
+
+      aws_region:
+        type: string
+        description: "AWS region"
+        default: "eu-west-1"
+        required: false
+
+      oidc_role_to_assume_build:
+        type: string
+        description: "OIDC role to assume for building and pulling from ECR"
+        default: ""
+        required: false
+
+      oidc_role_to_assume_push:
+        type: string
+        description: "OIDC role to assume for pushing to ECR (multi-arch consolidation)"
+        default: ""
+        required: false
+
+      enable_snyk_scanning:
+        type: boolean
+        description: "Enable Snyk container scanning"
+        default: false
+        required: false
+
+      snyk_ecr_registry_id:
+        type: string
+        description: "AWS account ID for the ECR registry containing the Snyk image (fallback if cache miss)"
+        default: ""
+        required: false
+
+      snyk_image:
+        type: string
+        description: "Snyk image reference (e.g., ECR registry/shared/snyk:cli-version)"
+        default: ""
+        required: false
+
+      snyk_policy_path:
+        type: string
+        description: "Path to Snyk policy file (optional)"
+        default: ""
+        required: false
+
+      snyk_container_options:
+        type: string
+        description: "Additional options to pass to snyk container test (e.g., --severity-threshold=high)"
+        default: ""
+        required: false
+
+    secrets:
+      SNYK_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare_snyk_image:
+    if: ${{ inputs.enable_snyk_scanning }}
+    name: Prepare Snyk Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials (Build Role)
+        if: ${{ inputs.oidc_role_to_assume_build != '' }}
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: 3600
+          role-session-name: OPGDockerBuildGithubAction
+          role-to-assume: ${{ inputs.oidc_role_to_assume_build }}
+
+      - name: Login to ECR (Snyk Image)
+        if: ${{ inputs.snyk_ecr_registry_id != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        with:
+          registries: ${{ inputs.snyk_ecr_registry_id }}
+
+      - name: Restore Snyk Image Cache
+        id: snyk_cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ inputs.artifact_directory }}/snyk-cache
+          key: snyk_cache_${{ inputs.snyk_image }}
+
+      - name: Pull and Save Snyk Image
+        if: ${{ steps.snyk_cache.outputs.cache-hit != 'true' }}
+        env:
+          AWS_REGION: ${{ inputs.aws_region }}
+          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
+          SNYK_CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/snyk-cache
+          SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
+        run: |
+          if [ -z "${SNYK_ECR_REGISTRY_ID}" ] || [ -z "${SNYK_IMAGE}" ]; then
+            echo "snyk_ecr_registry_id and snyk_image are required when Snyk scanning is enabled"
+            exit 1
+          fi
+
+          mkdir -p "${SNYK_CACHE_DIRECTORY}"
+          SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
+          docker save "${SNYK_REGISTRY}/${SNYK_IMAGE}" --output "${SNYK_CACHE_PATH}"
+
+  build_single_images:
+    needs: [prepare_snyk_image]
+    if: ${{ always() && (needs.prepare_snyk_image.result == 'success' || needs.prepare_snyk_image.result == 'skipped') }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJSON(inputs.build_targets) }}
+    name: "${{ inputs.job_name }} / ${{ (inputs.image_display_name || inputs.image_name) }}"
+    runs-on: ${{ matrix.actions_runner }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
+
+      - name: Configure AWS Credentials (Build Role)
+        if: ${{ inputs.oidc_role_to_assume_build != '' }}
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: 3600
+          role-session-name: OPGDockerBuildGithubAction
+          role-to-assume: ${{ inputs.oidc_role_to_assume_build }}
+
+      - name: Login to ECR (Build Role)
+        if: ${{ inputs.oidc_role_to_assume_build != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Restore Snyk Image Cache
+        if: ${{ inputs.enable_snyk_scanning }}
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ inputs.artifact_directory }}/snyk-cache
+          key: snyk_cache_${{ inputs.snyk_image }}
+
+      - name: Load Snyk Image
+        if: ${{ inputs.enable_snyk_scanning }}
+        env:
+          SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
+        run: docker load --input "${SNYK_CACHE_PATH}"
+
+      - name: Build Image & Save Cache
+        env:
+          ARTIFACT_NAME: ${{ inputs.artifact_name }}
+          BUILD_OPTIONS: ${{ inputs.build_options }}
+          BUILD_PATH: ${{ inputs.build_path }}
+          BUILD_TARGET: ${{ inputs.build_target }}
+          CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
+        run: |
+          mkdir -p "${CACHE_DIRECTORY}"
+          ${{ inputs.cli_commands }}
+
+          BUILD_TARGET_OPTION=""
+          if [ -n "${BUILD_TARGET}" ]; then
+            BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
+          fi
+
+          echo "Building ${IMAGE_REF} for ${{ matrix.platform }}"
+          docker buildx build \
+            --platform "${{ matrix.platform }}" \
+            --tag "${IMAGE_REF}" \
+            --load \
+            --cache-to type=local,dest="${CACHE_DIRECTORY}",mode=max \
+            ${BUILD_TARGET_OPTION} \
+            ${BUILD_OPTIONS} \
+            "${BUILD_PATH}"
+
+      - name: Scan with Snyk
+        if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_scan
+        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@9e756945a9e2b6ac5dc81473b01f8b38600e6ed6 # v4.8.6
+        with:
+          SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ matrix.tag }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          snyk_policy_path: ${{ inputs.snyk_policy_path }}
+          snyk_test_args: ${{ inputs.snyk_container_options }}
+          sarif_filepath: test-results
+          sarif_filename: snyk-${{ matrix.tag }}.sarif
+
+      - name: Upload Snyk Scan Results
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_scan.outcome == 'success' && hashFiles(format('test-results/snyk-{0}.sarif', matrix.tag)) != '' }}
+        uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
+        with:
+          category: "snyk-${{ matrix.tag }}"
+          sarif_file: "test-results/snyk-${{ matrix.tag }}.sarif"
+
+      - name: Configure AWS Credentials (Push Role)
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: 3600
+          role-session-name: OPGDockerPushGithubAction
+          role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
+      - name: Login to ECR (Push Role)
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Push Image
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        env:
+          IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
+        run: docker push "${IMAGE_REF}"
+
+      - name: Archive Cache
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
+          path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+
+  build_multi_arch_image:
+    name: ${{ inputs.job_name }} / ${{ (inputs.image_display_name || inputs.image_name) }}
+    runs-on: ubuntu-latest
+    needs: [build_single_images]
+    if: ${{ fromJSON(inputs.build_targets)[1] != null }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Docker
+        run: |
+          echo '{"experimental": true, "features": { "containerd-snapshotter": true }}' | sudo tee -a /etc/docker/daemon.json
+          sudo systemctl restart docker
+          docker run --privileged --rm tonistiigi/binfmt --install all
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: ${{ inputs.artifact_directory }}/cache
+          pattern: cache-${{ inputs.artifact_name }}-*
+          merge-multiple: false
+
+      - name: Configure AWS Credentials (Push Role)
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: 3600
+          role-session-name: OPGDockerPushGithubAction
+          role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
+
+      - name: Login to ECR (Push Role)
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Build & Save Image
+        env:
+          ARTIFACT_DIRECTORY: ${{ inputs.artifact_directory }}
+          ARTIFACT_NAME: ${{ inputs.artifact_name }}
+          BUILD_OPTIONS: ${{ inputs.build_options }}
+          BUILD_PATH: ${{ inputs.build_path }}
+          BUILD_TARGET: ${{ inputs.build_target }}
+          BUILD_TARGETS: ${{ inputs.build_targets }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+        run: |
+          ${{ inputs.cli_commands }}
+          PLATFORMS="$(jq -r '[.[].platform] | join(",")' <<< "${BUILD_TARGETS}")"
+          CACHE_OPTIONS=""
+          while read -r TARGET_TAG; do
+            CACHE_OPTIONS="${CACHE_OPTIONS} --cache-from type=local,src=${ARTIFACT_DIRECTORY}/cache/cache-${ARTIFACT_NAME}-${TARGET_TAG}"
+          done < <(jq -r '.[].tag' <<< "${BUILD_TARGETS}")
+          BUILD_TARGET_OPTION=""
+          if [ -n "${BUILD_TARGET}" ]; then
+            BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
+          fi
+          echo "Consolidating ${IMAGE_REF} for ${PLATFORMS}"
+          docker build \
+            --platform "${PLATFORMS}" \
+            --tag "${IMAGE_REF}" \
+            ${CACHE_OPTIONS} \
+            ${BUILD_TARGET_OPTION} \
+            ${BUILD_OPTIONS} \
+            "${BUILD_PATH}"
+          docker save -o "${ARTIFACT_DIRECTORY}/${ARTIFACT_NAME}.tar" "${IMAGE_REF}"
+
+      - name: Push Image
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        env:
+          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+        run: docker push "${IMAGE_REF}"
+
+      - name: Archive image
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            ${{ inputs.artifact_directory }}/${{ inputs.artifact_name }}.tar
