@@ -115,7 +115,7 @@ jobs:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
-    name: "${{ inputs.job_name }} ${{ matrix.tag }}"
+    name: "${{ inputs.job_name }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -140,6 +140,15 @@ jobs:
           ECR_REGISTRY="${IMAGE_NAME%%/*}"
           aws ecr get-login-password --region "${{ inputs.aws_region }}" \
             | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+
+      - name: Restore Snyk Image Cache
+        if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_cache_restore
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ${{ inputs.artifact_directory }}/snyk-cache
+          key: snyk_cache_${{ runner.os }}_${{ runner.arch }}
+          restore-keys: snyk_cache_${{ runner.os }}_
 
       - name: Restore or Pull Snyk Image
         if: ${{ inputs.enable_snyk_scanning }}
@@ -166,12 +175,13 @@ jobs:
             echo "Pulled Snyk from ECR and cached"
           fi
 
-      - name: Cache Snyk Image
-        if: ${{ inputs.enable_snyk_scanning }}
-        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+      - name: Save Snyk Image to Cache
+        if: ${{ inputs.enable_snyk_scanning && hashFiles(format('{0}/snyk-cache/snyk.tar', inputs.artifact_directory)) != '' }}
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ${{ inputs.artifact_directory }}/snyk-cache
           key: snyk_cache_${{ runner.os }}_${{ runner.arch }}
+          save-only: true
 
       - name: Build Image & Save Cache
         env:
