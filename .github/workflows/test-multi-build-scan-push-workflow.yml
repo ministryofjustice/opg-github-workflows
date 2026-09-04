@@ -96,6 +96,18 @@ on:
         default: ""
         required: false
 
+      snyk_policy_path:
+        type: string
+        description: "Path to Snyk policy file (optional)"
+        default: ""
+        required: false
+
+      snyk_container_options:
+        type: string
+        description: "Additional options to pass to snyk container test (e.g., --severity-threshold=high)"
+        default: ""
+        required: false
+
     secrets:
       SNYK_TOKEN:
         required: false
@@ -217,15 +229,40 @@ jobs:
           TAG: ${{ matrix.tag }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_IMAGE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
+          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path }}
+          SNYK_CONTAINER_OPTIONS: ${{ inputs.snyk_container_options }}
         run: |
           if [ -f "${SNYK_IMAGE_PATH}" ] && [ -n "${SNYK_TOKEN}" ]; then
             SNYK_REGISTRY_IMAGE=$(docker load --input "${SNYK_IMAGE_PATH}" 2>&1 | grep -oP 'Loaded image: \K\S+' || echo "")
             if [ -n "${SNYK_REGISTRY_IMAGE}" ]; then
+              mkdir -p test-results
+
+              POLICY_OPTION=""
+              if [ -n "${SNYK_POLICY_PATH}" ]; then
+                if [ "${SNYK_POLICY_PATH#/}" = "${SNYK_POLICY_PATH}" ]; then
+                  POLICY_OPTION="--policy-path=${GITHUB_WORKSPACE}/${SNYK_POLICY_PATH}"
+                else
+                  POLICY_OPTION="--policy-path=${SNYK_POLICY_PATH}"
+                fi
+              fi
+
               docker run --rm \
                 -e SNYK_TOKEN="${SNYK_TOKEN}" \
-                "${SNYK_REGISTRY_IMAGE}" container test "${IMAGE_NAME}:${TAG}" || true
+                -v "${GITHUB_WORKSPACE}:/workspace" \
+                "${SNYK_REGISTRY_IMAGE}" container test "${IMAGE_NAME}:${TAG}" \
+                --format=sarif \
+                --output="/workspace/test-results/snyk-${TAG}.sarif" \
+                ${POLICY_OPTION} \
+                ${SNYK_CONTAINER_OPTIONS} || true
             fi
           fi
+
+      - name: Upload Snyk Scan Results
+        if: ${{ inputs.enable_snyk_scanning && hashFiles(format('test-results/snyk-{0}.sarif', matrix.tag)) != '' }}
+        uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
+        with:
+          category: "snyk-${{ matrix.tag }}"
+          sarif_file: "test-results/snyk-${{ matrix.tag }}.sarif"
 
       - name: Archive Cache
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
