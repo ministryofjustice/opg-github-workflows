@@ -56,8 +56,8 @@ on:
 
       build_targets:
         type: string
-        description: "JSON array of build targets to override default matrix. Each entry: {actions_runner, platform, tag}"
-        default: '[{"actions_runner":"ubuntu-latest","platform":"linux/amd64","tag":"AMD64"},{"actions_runner":"ubuntu-24.04-arm","platform":"linux/arm64/v8","tag":"ARM64"}]'
+        description: "JSON array of build targets. Pass multiple entries to enable multi-architecture builds. Each entry: {actions_runner, platform, tag}"
+        default: '[{"actions_runner":"ubuntu-latest","platform":"linux/amd64","tag":"AMD64"}]'
         required: false
 
       aws_region:
