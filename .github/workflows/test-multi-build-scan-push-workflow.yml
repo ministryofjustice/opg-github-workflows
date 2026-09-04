@@ -128,12 +128,61 @@ defaults:
     shell: bash
 
 jobs:
+  prepare_snyk_image:
+    if: ${{ inputs.enable_snyk_scanning }}
+    name: Prepare Snyk Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials (Build Role)
+        if: ${{ inputs.oidc_role_to_assume_build != '' }}
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: 3600
+          role-session-name: OPGDockerBuildGithubAction
+          role-to-assume: ${{ inputs.oidc_role_to_assume_build }}
+
+      - name: Login to ECR (Snyk Image)
+        if: ${{ inputs.snyk_ecr_registry_id != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        with:
+          registries: ${{ inputs.snyk_ecr_registry_id }}
+
+      - name: Restore Snyk Image Cache
+        id: snyk_cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ inputs.artifact_directory }}/snyk-cache
+          key: snyk_cache_${{ inputs.snyk_image }}
+
+      - name: Pull and Save Snyk Image
+        if: ${{ steps.snyk_cache.outputs.cache-hit != 'true' }}
+        env:
+          AWS_REGION: ${{ inputs.aws_region }}
+          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
+          SNYK_CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/snyk-cache
+          SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
+        run: |
+          if [ -z "${SNYK_ECR_REGISTRY_ID}" ] || [ -z "${SNYK_IMAGE}" ]; then
+            echo "snyk_ecr_registry_id and snyk_image are required when Snyk scanning is enabled"
+            exit 1
+          fi
+
+          mkdir -p "${SNYK_CACHE_DIRECTORY}"
+          SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
+          docker save "${SNYK_REGISTRY}/${SNYK_IMAGE}" --output "${SNYK_CACHE_PATH}"
+
   build_single_images:
+    needs: [prepare_snyk_image]
+    if: ${{ always() && (needs.prepare_snyk_image.result == 'success' || needs.prepare_snyk_image.result == 'skipped') }}
     strategy:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
-    name: "${{ inputs.job_name }} / ${{ inputs.image_display_name || inputs.image_name }}"
+    name: "${{ inputs.job_name }} / ${{ (inputs.image_display_name || inputs.image_name) }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -159,33 +208,13 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ${{ inputs.artifact_directory }}/snyk-cache
-          key: snyk_cache_${{ runner.os }}_${{ runner.arch }}
-          restore-keys: snyk_cache_${{ runner.os }}_
+          key: snyk_cache_${{ inputs.snyk_image }}
 
-      - name: Pull Snyk ECR Image if cache unavailable
+      - name: Load Snyk Image
         if: ${{ inputs.enable_snyk_scanning }}
         env:
-          AWS_REGION: ${{ inputs.aws_region }}
-          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
-          SNYK_IMAGE: ${{ inputs.snyk_image }}
-          SNYK_CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/snyk-cache
           SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
-        run: |
-          mkdir -p "${SNYK_CACHE_DIRECTORY}"
-
-          # Try to load from cache first
-          if [ -f "${SNYK_CACHE_PATH}" ]; then
-            docker load --input "${SNYK_CACHE_PATH}"
-            echo "Loaded Snyk from cache"
-          elif [ -n "${SNYK_ECR_REGISTRY_ID}" ] && [ -n "${SNYK_IMAGE}" ]; then
-            # Fallback: pull from ECR
-            SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-            aws ecr get-login-password --region "${AWS_REGION}" \
-              | docker login --username AWS --password-stdin "${SNYK_REGISTRY}"
-            docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
-            docker save "${SNYK_REGISTRY}/${SNYK_IMAGE}" --output "${SNYK_CACHE_PATH}"
-            echo "Pulled Snyk from ECR and cached"
-          fi
+        run: docker load --input "${SNYK_CACHE_PATH}"
 
       - name: Build Image & Save Cache
         env:
@@ -259,7 +288,7 @@ jobs:
           path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
 
   build_multi_arch_image:
-    name: ${{ inputs.job_name }} / ${{ inputs.image_display_name || inputs.image_name }}
+    name: ${{ inputs.job_name }} / ${{ (inputs.image_display_name || inputs.image_name) }}
     runs-on: ubuntu-latest
     needs: [build_single_images]
     if: ${{ fromJSON(inputs.build_targets)[1] != null }}
