@@ -66,6 +66,12 @@ on:
         default: '[{"actions_runner":"ubuntu-latest","platform":"linux/amd64","tag":"AMD64"}]'
         required: false
 
+      multi_arch_build_enabled:
+        type: boolean
+        description: "Enable multi-architecture image consolidation"
+        default: true
+        required: false
+
       aws_region:
         type: string
         description: "AWS region"
@@ -82,6 +88,12 @@ on:
         type: string
         description: "OIDC role to assume for pushing to ECR (multi-arch consolidation)"
         default: ""
+        required: false
+
+      push_images:
+        type: boolean
+        description: "Push built images to ECR"
+        default: true
         required: false
 
       enable_snyk_scanning:
@@ -214,7 +226,7 @@ jobs:
           sarif_file: "test-results/snyk-${{ matrix.tag }}.sarif"
 
       - name: Configure AWS Credentials (Push Role)
-        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
           aws-region: ${{ inputs.aws_region }}
@@ -223,11 +235,11 @@ jobs:
           role-session-name: OPGDockerPushGithubAction
           role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
       - name: Login to ECR (Push Role)
-        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
       - name: Push Image
-        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
         env:
           IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
         run: docker push "${IMAGE_REF}"
@@ -242,7 +254,7 @@ jobs:
     name: Multi-architecture image
     runs-on: ubuntu-latest
     needs: [build_single_images]
-    if: ${{ fromJSON(inputs.build_targets)[1] != null }}
+    if: ${{ inputs.multi_arch_build_enabled && fromJSON(inputs.build_targets)[1] != null }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
@@ -259,7 +271,7 @@ jobs:
           merge-multiple: false
 
       - name: Configure AWS Credentials (Push Role)
-        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
           aws-region: ${{ inputs.aws_region }}
@@ -269,7 +281,7 @@ jobs:
           role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
 
       - name: Login to ECR (Push Role)
-        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
       - name: Build & Save Image
@@ -303,7 +315,7 @@ jobs:
           docker save -o "${ARTIFACT_DIRECTORY}/${ARTIFACT_NAME}.tar" "${IMAGE_REF}"
 
       - name: Push Image
-        if: ${{ inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
         env:
           IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
         run: docker push "${IMAGE_REF}"
