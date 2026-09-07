@@ -56,20 +56,21 @@ on:
 
       build_target:
         type: string
-        description: "Dockerfile target stage to build (optional)"
+        description: "Single build target for the Dockerfile"
         default: ""
+        required: false
+
+# multi arch builds
+      multi_arch_build_enabled:
+        type: boolean
+        description: "Enable multi-architecture image consolidation"
+        default: true
         required: false
 
       build_targets:
         type: string
         description: "JSON array of build targets. Pass multiple entries to enable multi-architecture builds. Each entry: {actions_runner, platform, tag}"
         default: '[{"actions_runner":"ubuntu-latest","platform":"linux/amd64","tag":"AMD64"}]'
-        required: false
-
-      multi_arch_build_enabled:
-        type: boolean
-        description: "Enable multi-architecture image consolidation"
-        default: true
         required: false
 
       aws_region:
@@ -140,7 +141,19 @@ defaults:
     shell: bash
 
 jobs:
+  prepare_snyk_image:
+    if: ${{ inputs.enable_snyk_scanning }}
+    uses: ./.github/workflows/test-prepare-snyk-image.yml
+    with:
+      artifact_directory: ${{ inputs.artifact_directory }}
+      aws_region: ${{ inputs.aws_region }}
+      oidc_role_to_assume: ${{ inputs.oidc_role_to_assume_build }}
+      snyk_ecr_registry_id: ${{ inputs.snyk_ecr_registry_id }}
+      snyk_image: ${{ inputs.snyk_image }}
+
   build_single_images:
+    needs: [prepare_snyk_image]
+    if: ${{ always() && (needs.prepare_snyk_image.result == 'success' || needs.prepare_snyk_image.result == 'skipped') }}
     strategy:
       fail-fast: true
       matrix:
