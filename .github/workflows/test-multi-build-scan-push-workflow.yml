@@ -127,6 +127,12 @@ on:
         default: ""
         required: false
 
+      skip_snyk_image_prep:
+        type: boolean
+        description: "Skip the internal Prepare Snyk Image job if Snyk scanning is enabled. Use this if you have already prepared the Snyk image in a previous workflow and it is cached."
+        default: false
+        required: false
+
     secrets:
       SNYK_TOKEN:
         required: false
@@ -142,7 +148,7 @@ defaults:
 
 jobs:
   prepare_snyk_image:
-    if: ${{ inputs.enable_snyk_scanning }}
+    if: ${{ inputs.enable_snyk_scanning && !inputs.skip_snyk_image_prep }}
     uses: ./.github/workflows/test-prepare-snyk-image.yml
     with:
       artifact_directory: ${{ inputs.artifact_directory }}
