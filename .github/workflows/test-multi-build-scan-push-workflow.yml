@@ -1,31 +1,40 @@
-name: "[Build - Docker] Build Multi Architecture Image"
+name: "[Build - Docker] Build, Scan and Push Image"
 
 on:
   workflow_call:
     inputs:
+      # Docker image identity used by build, scan, push, and cache references.
       image_name:
         type: string
-        description: "Name of built image"
+        description: "ECR image name"
         required: true
 
       image_tag:
         type: string
-        description: "Tag of built image"
+        description: "Tag for docker image"
         default: "latest"
         required: false
 
+      # Artifacts exchanged between isolated workflow jobs.
       artifact_name:
         type: string
-        description: "Name for uploaded artifact of image"
+        description: "Name for uploaded artifact of image (this must be unique when building more than one multi architecture image)"
         default: "multi-arch-image"
         required: false
 
       artifact_directory:
         type: string
-        description: "Directory to store built images and build cache"
+        description: "Directory to store built images, Snyk image cache, and build cache"
         default: "/tmp/images"
         required: false
 
+      snyk_sarif_directory:
+        type: string
+        description: "Directory to store Snyk SARIF files"
+        default: "test-results"
+        required: false
+
+      # Docker build inputs supplied by the consuming repository.
       build_options:
         type: string
         description: "A list of docker build options"
@@ -42,9 +51,10 @@ on:
         description: "Any cli commands that might need to be run before a build such as make targets"
         required: false
 
+      # Check names shown in the consuming repository.
       job_name:
         type: string
-        description: "Prefix for the Docker build job display name"
+        description: "Name of build image job for checking status against"
         default: "Docker Build, Scan and Push"
         required: false
 
@@ -60,34 +70,60 @@ on:
         default: ""
         required: false
 
-# multi arch builds
+      # ECR BuildKit cache tag derived from the target image name.
+      ecr_build_cache_tag_prefix:
+        type: string
+        description: "Tag prefix for the ECR BuildKit cache image"
+        default: "build-cache"
+        required: false
+
+      # Multi-architecture build matrix. A single target skips consolidation.
       multi_arch_build_enabled:
         type: boolean
-        description: "Enable multi-architecture image consolidation"
+        description: "Build a multi-architecture image when more than one build target is provided"
         default: true
         required: false
 
       build_targets:
         type: string
-        description: "JSON array of build targets. Pass multiple entries to enable multi-architecture builds. Each entry: {actions_runner, platform, tag}"
+        description: "JSON matrix of native build targets. Each entry requires actions_runner, platform, and tag"
         default: '[{"actions_runner":"ubuntu-latest","platform":"linux/amd64","tag":"AMD64"}]'
         required: false
 
+      # AWS/OIDC settings for separate build and push roles.
       aws_region:
         type: string
         description: "AWS region"
         default: "eu-west-1"
         required: false
 
+      aws_role_duration_seconds:
+        type: number
+        description: "AWS role duration seconds"
+        default: 3600
+        required: false
+
+      oidc_role_session_name_build:
+        type: string
+        description: "OIDC role session name for pulling from ECR and building images"
+        default: "OPGDockerBuildGithubAction"
+        required: false
+
+      oidc_role_session_name_push:
+        type: string
+        description: "OIDC role session name for pushing images and publishing ECR cache"
+        default: "OPGDockerPushGithubAction"
+        required: false
+
       oidc_role_to_assume_build:
         type: string
-        description: "OIDC role to assume for building and pulling from ECR"
+        description: "OIDC role used to pull from ECR and read ECR cache during native builds"
         default: ""
         required: false
 
       oidc_role_to_assume_push:
         type: string
-        description: "OIDC role to assume for pushing to ECR (multi-arch consolidation)"
+        description: "OIDC role used to push images and publish ECR cache"
         default: ""
         required: false
 
@@ -97,6 +133,14 @@ on:
         default: true
         required: false
 
+      # Runner used for the multi-architecture consolidation job.
+      multi_arch_actions_runner:
+        type: string
+        description: "GitHub Actions runner for multi-architecture image consolidation"
+        default: "ubuntu-latest"
+        required: false
+
+      # Snyk scanner image, policy, and container test options.
       enable_snyk_scanning:
         type: boolean
         description: "Enable Snyk container scanning"
@@ -105,14 +149,14 @@ on:
 
       snyk_ecr_registry_id:
         type: string
-        description: "AWS account ID for the ECR registry containing the Snyk image (fallback if cache miss)"
-        default: ""
+        description: "AWS account ID for the ECR registry containing the Snyk image"
+        default: "311462405659"
         required: false
 
       snyk_image:
         type: string
         description: "Snyk image reference"
-        default: ""
+        default: "shared/snyk:main-cli-1.1303.2-v0.3.0"
         required: false
 
       snyk_policy_path:
@@ -125,12 +169,6 @@ on:
         type: string
         description: "Additional options to pass to snyk container test (e.g., --severity-threshold=high)"
         default: ""
-        required: false
-
-      skip_snyk_image_prep:
-        type: boolean
-        description: "Skip the internal Prepare Snyk Image job if Snyk scanning is enabled. Use this if you have already prepared the Snyk image in a previous workflow and it is cached."
-        default: false
         required: false
 
     secrets:
@@ -147,17 +185,19 @@ defaults:
     shell: bash
 
 jobs:
+  # Build each platform natively so the scan runs before any image is pushed.
   build_single_images:
     strategy:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
-    name: "${{ inputs.job_name }} / ${{ inputs.image_display_name || inputs.image_name }}"
+    name: "${{ inputs.job_name }} / Build Single Image / ${{ inputs.image_display_name || inputs.image_name }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
 
       - name: Configure AWS Credentials (Build Role)
         if: ${{ inputs.oidc_role_to_assume_build != '' }}
@@ -165,8 +205,8 @@ jobs:
         with:
           aws-region: ${{ inputs.aws_region }}
           mask-aws-account-id: "true"
-          role-duration-seconds: 3600
-          role-session-name: OPGDockerBuildGithubAction
+          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
+          role-session-name: ${{ inputs.oidc_role_session_name_build }}
           role-to-assume: ${{ inputs.oidc_role_to_assume_build }}
 
       - name: Login to ECR (Build Role)
@@ -175,10 +215,32 @@ jobs:
 
       - name: Restore Snyk Image Cache
         if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ${{ inputs.artifact_directory }}/snyk-cache
           key: snyk_cache_${{ inputs.snyk_image }}
+
+      # Docker images loaded in one job are not available in another job.
+      - name: Login to Snyk ECR (Build Role)
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_cache.outputs.cache-hit != 'true' && inputs.snyk_ecr_registry_id != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        with:
+          registries: ${{ inputs.snyk_ecr_registry_id }}
+
+      - name: Pull and Save Snyk Image
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_cache.outputs.cache-hit != 'true' }}
+        env:
+          AWS_REGION: ${{ inputs.aws_region }}
+          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
+          SNYK_CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/snyk-cache
+          SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
+        run: |
+          mkdir -p "${SNYK_CACHE_DIRECTORY}"
+          SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
+          docker save "${SNYK_REGISTRY}/${SNYK_IMAGE}" --output "${SNYK_CACHE_PATH}"
 
       - name: Load Snyk Image
         if: ${{ inputs.enable_snyk_scanning }}
@@ -186,13 +248,14 @@ jobs:
           SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
         run: docker load --input "${SNYK_CACHE_PATH}"
 
-      - name: Build Image & Save Cache
+      - name: Build Single Image & Save Cache
         env:
           ARTIFACT_NAME: ${{ inputs.artifact_name }}
           BUILD_OPTIONS: ${{ inputs.build_options }}
           BUILD_PATH: ${{ inputs.build_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
           CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+          ECR_BUILDKIT_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.ecr_build_cache_tag_prefix }}-${{ inputs.image_tag }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
         run: |
           mkdir -p "${CACHE_DIRECTORY}"
@@ -208,41 +271,79 @@ jobs:
             --platform "${{ matrix.platform }}" \
             --tag "${IMAGE_REF}" \
             --load \
+            --cache-from type=registry,ref="${ECR_BUILDKIT_CACHE_REF}" \
             --cache-to type=local,dest="${CACHE_DIRECTORY}",mode=max \
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
 
-      - name: Check Snyk policy file
+      - name: Resolve Snyk policy file
         if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_policy
         env:
-          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path || './.snyk' }}
+          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path }}
+          SNYK_SARIF_DIRECTORY: ${{ inputs.snyk_sarif_directory }}
         run: |
           if [ -f "${SNYK_POLICY_PATH}" ]; then
             echo "Using Snyk policy file ${SNYK_POLICY_PATH}"
             cat "${SNYK_POLICY_PATH}"
+            POLICY_FILE="$(realpath "${SNYK_POLICY_PATH}")"
           else
-            echo "::warning::No Snyk policy file found at ${SNYK_POLICY_PATH}; ignores and patches will not be applied"
+            GENERATED_POLICY_PATH="${SNYK_SARIF_DIRECTORY}/.snyk-${{ matrix.tag }}"
+            mkdir -p "${SNYK_SARIF_DIRECTORY}"
+            printf 'version: v1.25.0\nignore: {}\npatch: {}\n' > "${GENERATED_POLICY_PATH}"
+            echo "::warning::No Snyk policy file found at ${SNYK_POLICY_PATH}; using empty policy file ${GENERATED_POLICY_PATH}"
+            POLICY_FILE="$(realpath "${GENERATED_POLICY_PATH}")"
           fi
 
-      - name: Scan with Snyk
+          echo "path=${POLICY_FILE}" >> "${GITHUB_OUTPUT}"
+
+      # The Snyk action container can read the SARIF directory, not the whole workspace.
+      - name: Prepare Snyk container test arguments
+        if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_args
+        env:
+          SNYK_CONTAINER_OPTIONS: ${{ inputs.snyk_container_options }}
+          SNYK_CONTAINER_DOCKERFILE_PATH: ${{ inputs.snyk_sarif_directory }}/Dockerfile-${{ matrix.tag }}
+        run: |
+          mkdir -p "${{ inputs.snyk_sarif_directory }}"
+          SNYK_TEST_ARGS="${SNYK_CONTAINER_OPTIONS}"
+
+          if [[ " ${SNYK_TEST_ARGS} " =~ [[:space:]]--file=([^[:space:]]+) ]]; then
+            SOURCE_DOCKERFILE="${BASH_REMATCH[1]}"
+            if [ ! -f "${SOURCE_DOCKERFILE}" ]; then
+              echo "::error::Snyk Dockerfile path does not exist: ${SOURCE_DOCKERFILE}"
+              exit 1
+            fi
+            cp "${SOURCE_DOCKERFILE}" "${SNYK_CONTAINER_DOCKERFILE_PATH}"
+            SNYK_TEST_ARGS="${SNYK_TEST_ARGS/--file=${SOURCE_DOCKERFILE}/--file=\/${SNYK_CONTAINER_DOCKERFILE_PATH}}"
+          fi
+
+          {
+            echo "args<<EOF"
+            echo "${SNYK_TEST_ARGS}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Scan native architecture image with Snyk
         if: ${{ inputs.enable_snyk_scanning }}
         id: snyk_scan
-        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@9e756945a9e2b6ac5dc81473b01f8b38600e6ed6 # v4.8.6
+        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@722a5f955424aaba01e9ca43d68390cd4048d6e1 # v4.10.2
         with:
           SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ matrix.tag }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          # An empty value here would override the action's default and drop the caller's ignores
-          snyk_policy_path: ${{ inputs.snyk_policy_path || './.snyk' }}
-          snyk_test_args: ${{ inputs.snyk_container_options }}
-          sarif_filepath: test-results
+          snyk_policy_path: ${{ steps.snyk_policy.outputs.path }}
+          snyk_test_args: ${{ steps.snyk_args.outputs.args }}
+          sarif_filepath: ${{ inputs.snyk_sarif_directory }}
           sarif_filename: snyk-${{ matrix.tag }}.sarif
-
-      - name: Check Snyk SARIF run count
+      # SARIF run count check and split is required because GitHub's upload-sarif action rejects files with more than 20 runs.
+      - name: Count Snyk SARIF runs
         id: sarif_check
-        if: ${{ inputs.enable_snyk_scanning && steps.snyk_scan.outcome == 'success' && hashFiles(format('test-results/snyk-{0}.sarif', matrix.tag)) != '' }}
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_scan.outcome == 'success' && hashFiles(format('{0}/snyk-{1}.sarif', inputs.snyk_sarif_directory, matrix.tag)) != '' }}
+        env:
+          SNYK_SARIF_DIRECTORY: ${{ inputs.snyk_sarif_directory }}
         run: |
-          FILE="test-results/snyk-${{ matrix.tag }}.sarif"
+          FILE="${SNYK_SARIF_DIRECTORY}/snyk-${{ matrix.tag }}.sarif"
           RUNS=$(jq '.runs | length' "${FILE}")
           echo "SARIF file has ${RUNS} runs"
           # GitHub's upload-sarif action rejects files with more than 20 runs
@@ -251,47 +352,49 @@ jobs:
           else
             echo "split=false" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Split Snyk SARIF results
+      # split SARIF files when the upload limit is exceeded, and upload each part separately
+      - name: Split Snyk SARIF when upload limit is exceeded
         if: ${{ steps.sarif_check.outputs.split == 'true' }}
+        env:
+          SNYK_SARIF_DIRECTORY: ${{ inputs.snyk_sarif_directory }}
         run: |
-          FILE="test-results/snyk-${{ matrix.tag }}.sarif"
-          BASE="test-results/snyk-${{ matrix.tag }}"
+          FILE="${SNYK_SARIF_DIRECTORY}/snyk-${{ matrix.tag }}.sarif"
+          BASE="${SNYK_SARIF_DIRECTORY}/snyk-${{ matrix.tag }}"
           jq '.runs = .runs[0:20]' "${FILE}" > "${BASE}_part_01.sarif"
           jq '.runs = .runs[20:]' "${FILE}" > "${BASE}_part_02.sarif"
 
-      - name: Upload Snyk Scan Results
+      - name: Upload Snyk SARIF
         if: ${{ steps.sarif_check.outputs.split == 'false' }}
         uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
         with:
           category: "snyk-${{ matrix.tag }}"
-          sarif_file: "test-results/snyk-${{ matrix.tag }}.sarif"
+          sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}.sarif"
 
-      - name: Upload Snyk Scan Results (part 1)
+      - name: Upload Snyk SARIF part 1
         if: ${{ steps.sarif_check.outputs.split == 'true' }}
         uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
         with:
           category: "snyk-${{ matrix.tag }}-1"
-          sarif_file: "test-results/snyk-${{ matrix.tag }}_part_01.sarif"
+          sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_01.sarif"
 
-      - name: Upload Snyk Scan Results (part 2)
-        if: ${{ steps.sarif_check.outputs.split == 'true' && hashFiles(format('test-results/snyk-{0}_part_02.sarif', matrix.tag)) != '' }}
+      - name: Upload Snyk SARIF part 2
+        if: ${{ steps.sarif_check.outputs.split == 'true' && hashFiles(format('{0}/snyk-{1}_part_02.sarif', inputs.snyk_sarif_directory, matrix.tag)) != '' }}
         uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
         with:
           category: "snyk-${{ matrix.tag }}-2"
-          sarif_file: "test-results/snyk-${{ matrix.tag }}_part_02.sarif"
+          sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
 
       - name: Configure AWS Credentials (Push Role)
-        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
           aws-region: ${{ inputs.aws_region }}
           mask-aws-account-id: "true"
-          role-duration-seconds: 3600
-          role-session-name: OPGDockerPushGithubAction
+          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
+          role-session-name: ${{ inputs.oidc_role_session_name_push }}
           role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
       - name: Login to ECR (Push Role)
-        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
       - name: Push Image
@@ -306,9 +409,10 @@ jobs:
           name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
           path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
 
+  # Rebuild from single build cache artifacts to create one multi-architecture image.
   build_multi_arch_image:
-    name: Multi-architecture image
-    runs-on: ubuntu-latest
+    name: "${{ inputs.job_name }} / Build Multi Architecture Image"
+    runs-on: ${{ inputs.multi_arch_actions_runner }}
     needs: [build_single_images]
     if: ${{ inputs.multi_arch_build_enabled && fromJSON(inputs.build_targets)[1] != null }}
     steps:
@@ -320,27 +424,28 @@ jobs:
           sudo systemctl restart docker
           docker run --privileged --rm tonistiigi/binfmt --install all
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - name: Download Cache
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: ${{ inputs.artifact_directory }}/cache
           pattern: cache-${{ inputs.artifact_name }}-*
           merge-multiple: false
 
       - name: Configure AWS Credentials (Push Role)
-        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
           aws-region: ${{ inputs.aws_region }}
           mask-aws-account-id: "true"
-          role-duration-seconds: 3600
-          role-session-name: OPGDockerPushGithubAction
+          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
+          role-session-name: ${{ inputs.oidc_role_session_name_push }}
           role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
 
       - name: Login to ECR (Push Role)
-        if: ${{ inputs.push_images && inputs.oidc_role_to_assume_push != '' }}
+        if: ${{ inputs.oidc_role_to_assume_push != '' }}
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
-      - name: Build & Save Image
+      - name: Build Multi Architecture Image & Save Image
         env:
           ARTIFACT_DIRECTORY: ${{ inputs.artifact_directory }}
           ARTIFACT_NAME: ${{ inputs.artifact_name }}
@@ -348,6 +453,7 @@ jobs:
           BUILD_PATH: ${{ inputs.build_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
           BUILD_TARGETS: ${{ inputs.build_targets }}
+          ECR_BUILDKIT_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.ecr_build_cache_tag_prefix }}-${{ inputs.image_tag }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
         run: |
           ${{ inputs.cli_commands }}
@@ -360,11 +466,14 @@ jobs:
           if [ -n "${BUILD_TARGET}" ]; then
             BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
           fi
+
           echo "Consolidating ${IMAGE_REF} for ${PLATFORMS}"
-          docker build \
+          docker buildx build \
             --platform "${PLATFORMS}" \
             --tag "${IMAGE_REF}" \
+            --load \
             ${CACHE_OPTIONS} \
+            --cache-to type=registry,ref="${ECR_BUILDKIT_CACHE_REF}",mode=max \
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
