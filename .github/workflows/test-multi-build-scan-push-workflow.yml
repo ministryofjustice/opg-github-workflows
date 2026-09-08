@@ -147,19 +147,7 @@ defaults:
     shell: bash
 
 jobs:
-  prepare_snyk_image:
-    if: ${{ inputs.enable_snyk_scanning && !inputs.skip_snyk_image_prep }}
-    uses: ./.github/workflows/test-prepare-snyk-image.yml
-    with:
-      artifact_directory: ${{ inputs.artifact_directory }}
-      aws_region: ${{ inputs.aws_region }}
-      oidc_role_to_assume: ${{ inputs.oidc_role_to_assume_build }}
-      snyk_ecr_registry_id: ${{ inputs.snyk_ecr_registry_id }}
-      snyk_image: ${{ inputs.snyk_image }}
-
   build_single_images:
-    needs: [prepare_snyk_image]
-    if: ${{ always() && (needs.prepare_snyk_image.result == 'success' || needs.prepare_snyk_image.result == 'skipped') }}
     strategy:
       fail-fast: true
       matrix:
