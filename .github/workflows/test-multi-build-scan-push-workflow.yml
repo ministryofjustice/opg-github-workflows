@@ -473,7 +473,7 @@ jobs:
             --tag "${IMAGE_REF}" \
             --load \
             ${CACHE_OPTIONS} \
-            --cache-to type=registry,ref="${ECR_BUILDKIT_CACHE_REF}",mode=max \
+            --cache-to type=registry,ref="${ECR_BUILDKIT_CACHE_REF}",mode=max,oci-mediatypes=true,image-manifest=true \
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
