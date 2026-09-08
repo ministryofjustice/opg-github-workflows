@@ -117,8 +117,8 @@ on:
 
       snyk_policy_path:
         type: string
-        description: "Path to Snyk policy file (optional)"
-        default: ""
+        description: "Path to the Snyk policy file holding ignores/patches for the calling repository"
+        default: "./.snyk"
         required: false
 
       snyk_container_options:
@@ -213,6 +213,18 @@ jobs:
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
 
+      - name: Check Snyk policy file
+        if: ${{ inputs.enable_snyk_scanning }}
+        env:
+          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path || './.snyk' }}
+        run: |
+          if [ -f "${SNYK_POLICY_PATH}" ]; then
+            echo "Using Snyk policy file ${SNYK_POLICY_PATH}"
+            cat "${SNYK_POLICY_PATH}"
+          else
+            echo "::warning::No Snyk policy file found at ${SNYK_POLICY_PATH}; ignores and patches will not be applied"
+          fi
+
       - name: Scan with Snyk
         if: ${{ inputs.enable_snyk_scanning }}
         id: snyk_scan
@@ -220,7 +232,8 @@ jobs:
         with:
           SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ matrix.tag }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          snyk_policy_path: ${{ inputs.snyk_policy_path }}
+          # An empty value here would override the action's default and drop the caller's ignores
+          snyk_policy_path: ${{ inputs.snyk_policy_path || './.snyk' }}
           snyk_test_args: ${{ inputs.snyk_container_options }}
           sarif_filepath: test-results
           sarif_filename: snyk-${{ matrix.tag }}.sarif
