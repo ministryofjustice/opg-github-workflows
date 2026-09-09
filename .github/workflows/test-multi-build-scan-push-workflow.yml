@@ -70,13 +70,6 @@ on:
         default: ""
         required: false
 
-      # ECR BuildKit cache tag derived from the target image name.
-      ecr_build_cache_tag_prefix:
-        type: string
-        description: "Tag prefix for the ECR BuildKit cache image"
-        default: "build-cache"
-        required: false
-
       # Multi-architecture build matrix. A single target skips consolidation.
       multi_arch_build_enabled:
         type: boolean
@@ -219,7 +212,7 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ${{ inputs.artifact_directory }}/snyk-cache
-          key: snyk_cache_${{ inputs.snyk_image }}
+          key: snyk_cache_${{ matrix.actions_runner }}_${{ inputs.snyk_image }}
 
       - name: Login to Snyk ECR (Build Role)
         if: ${{ inputs.enable_snyk_scanning && steps.snyk_cache.outputs.cache-hit != 'true' && inputs.snyk_ecr_registry_id != '' }}
@@ -247,17 +240,28 @@ jobs:
           SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
         run: docker load --input "${SNYK_CACHE_PATH}"
 
+      - name: Restore Docker Build Cache
+        id: docker_cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+          key: buildkit-${{ inputs.artifact_name }}-${{ matrix.tag }}-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            buildkit-${{ inputs.artifact_name }}-${{ matrix.tag }}-${{ github.ref_name }}-
+            buildkit-${{ inputs.artifact_name }}-${{ matrix.tag }}-main-
+            buildkit-${{ inputs.artifact_name }}-${{ matrix.tag }}-
+
       - name: Build Single Image & Save Cache
         env:
           ARTIFACT_NAME: ${{ inputs.artifact_name }}
           BUILD_OPTIONS: ${{ inputs.build_options }}
           BUILD_PATH: ${{ inputs.build_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
-          CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
-          ECR_BUILDKIT_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.ecr_build_cache_tag_prefix }}-${{ inputs.image_tag }}
+          CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
+          NEW_CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache-new/${{ inputs.artifact_name }}-${{ matrix.tag }}
         run: |
-          mkdir -p "${CACHE_DIRECTORY}"
+          mkdir -p "${CACHE_DIRECTORY}" "${NEW_CACHE_DIRECTORY}"
           ${{ inputs.cli_commands }}
 
           BUILD_TARGET_OPTION=""
@@ -270,11 +274,14 @@ jobs:
             --platform "${{ matrix.platform }}" \
             --tag "${IMAGE_REF}" \
             --load \
-            --cache-from type=registry,ref="${ECR_BUILDKIT_CACHE_REF}" \
-            --cache-to type=local,dest="${CACHE_DIRECTORY}",mode=max \
+            --cache-from type=local,src="${CACHE_DIRECTORY}" \
+            --cache-to type=local,dest="${NEW_CACHE_DIRECTORY}",mode=max \
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
+
+          rm -rf "${CACHE_DIRECTORY}"
+          mv "${NEW_CACHE_DIRECTORY}" "${CACHE_DIRECTORY}"
 
       - name: Resolve Snyk policy file
         if: ${{ inputs.enable_snyk_scanning }}
@@ -284,9 +291,9 @@ jobs:
           SNYK_SARIF_DIRECTORY: ${{ inputs.snyk_sarif_directory }}
         run: |
           if [ -f "${SNYK_POLICY_PATH}" ]; then
-            echo "Using Snyk policy file ${SNYK_POLICY_PATH}"
-            cat "${SNYK_POLICY_PATH}"
             POLICY_FILE="$(realpath "${SNYK_POLICY_PATH}")"
+          elif [ -f "${GITHUB_WORKSPACE}/.github/.snyk" ]; then
+            POLICY_FILE="$(realpath "${GITHUB_WORKSPACE}/.github/.snyk")"
           else
             GENERATED_POLICY_PATH="${SNYK_SARIF_DIRECTORY}/.snyk-${{ matrix.tag }}"
             mkdir -p "${SNYK_SARIF_DIRECTORY}"
@@ -295,6 +302,8 @@ jobs:
             POLICY_FILE="$(realpath "${GENERATED_POLICY_PATH}")"
           fi
 
+          echo "Using Snyk policy file ${POLICY_FILE}"
+          cat "${POLICY_FILE}"
           echo "path=${POLICY_FILE}" >> "${GITHUB_OUTPUT}"
 
       - name: Prepare Snyk container test arguments
@@ -407,7 +416,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
-          path: ${{ inputs.artifact_directory }}/cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+          path: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
 
   # Rebuild from single build cache artifacts to create one multi-architecture image.
   build_multi_arch_image:
@@ -453,7 +462,6 @@ jobs:
           BUILD_PATH: ${{ inputs.build_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
           BUILD_TARGETS: ${{ inputs.build_targets }}
-          ECR_BUILDKIT_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.ecr_build_cache_tag_prefix }}-${{ inputs.image_tag }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
         run: |
           ${{ inputs.cli_commands }}
@@ -473,7 +481,6 @@ jobs:
             --tag "${IMAGE_REF}" \
             --load \
             ${CACHE_OPTIONS} \
-            --cache-to type=registry,ref="${ECR_BUILDKIT_CACHE_REF}",mode=max,oci-mediatypes=true,image-manifest=true \
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
