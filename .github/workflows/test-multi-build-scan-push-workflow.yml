@@ -393,6 +393,7 @@ jobs:
           CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
           ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
           IMAGE_NAME: ${{ inputs.image_name }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
           PLATFORM: ${{ matrix.platform }}
         run: |
           BUILD_TARGET_OPTION=""
@@ -401,11 +402,13 @@ jobs:
           fi
 
           PLATFORM_ARCH="${PLATFORM##*/}"
-          IMAGE_REF="${IMAGE_NAME}:${PLATFORM_ARCH}"
+          IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
+          PLATFORM_IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}-${PLATFORM_ARCH}"
 
           docker buildx build \
             --platform "${{ matrix.platform }}" \
             --tag "${IMAGE_REF}" \
+            --tag "${PLATFORM_IMAGE_REF}" \
             --cache-from type=local,src="${CACHE_DIRECTORY}" \
             --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
             --push \
@@ -466,7 +469,7 @@ jobs:
           BUILD_TARGET: ${{ inputs.build_target }}
           BUILD_TARGETS: ${{ inputs.build_targets }}
           ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
-          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}-multi-arch
+          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
         run: |
           ${{ inputs.cli_commands }}
           PLATFORMS="$(jq -r '[.[].platform] | join(",")' <<< "${BUILD_TARGETS}")"
