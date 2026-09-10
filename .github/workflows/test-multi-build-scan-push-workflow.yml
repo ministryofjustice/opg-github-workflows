@@ -70,6 +70,12 @@ on:
         default: ""
         required: false
 
+      build_cache_tag:
+        type: string
+        description: "Tag used when pushing the ECR build cache image, can be overridden by consuming repositories"
+        default: "build-cache"
+        required: false
+
       # Multi-architecture build matrix. A single target skips consolidation.
       build_targets:
         type: string
@@ -171,14 +177,14 @@ defaults:
 
 # Native architecture build and scan steps. A single build target is published from this job.
 jobs:
-  build_native_images:
+  build_single_arch_images:
     # The caller-provided matrix selects the native runner, platform, and temporary image tag for each architecture.
     strategy:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
 
-    name: "${{ inputs.job_name }} / Build Native Image (${{ matrix.tag }}) / ${{ inputs.image_display_name || inputs.image_name }}"
+    name: "${{ inputs.job_name }} / Build Single-Arch Image (${{ matrix.tag }}) / ${{ inputs.image_display_name || inputs.image_name }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - name: Checkout
@@ -200,7 +206,6 @@ jobs:
       - name: Login to ECR (Build Role)
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
-      # Prefer the GitHub Actions cache, falling back to the Snyk image in ECR if not available.
       # On a cache miss, this job pulls and saves the image so later builds can restore it directly.
       - name: Restore Snyk Image Cache
         if: ${{ inputs.enable_snyk_scanning }}
@@ -238,13 +243,13 @@ jobs:
         run: docker load --input "${SNYK_CACHE_PATH}"
 
       # Build the native image and save the cache.
-      - name: Build Native Image and Export Cache
+      - name: Build single image and export Cache
         env:
           BUILD_OPTIONS: ${{ inputs.build_options }}
           BUILD_PATH: ${{ inputs.build_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
           CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
-          ECR_CACHE_REF: ${{ inputs.image_name }}:build-cache
+          ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
         run: |
           rm -rf "${CACHE_DIRECTORY}"
@@ -353,7 +358,7 @@ jobs:
           category: "snyk-${{ matrix.tag }}-2"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
 
-      # Configure AWS credentials for the push role and push the built image to ECR.
+    # Configure AWS credentials for the push role and push the built image to ECR.
       # A one-entry matrix publishes directly and skips cache artifacts and multi-architecture consolidation.
       - name: Configure AWS Credentials (Push Role)
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
@@ -378,7 +383,7 @@ jobs:
           BUILD_PATH: ${{ inputs.build_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
           CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
-          ECR_CACHE_REF: ${{ inputs.image_name }}:build-cache
+          ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
         run: |
           BUILD_TARGET_OPTION=""
@@ -405,10 +410,10 @@ jobs:
 
   # This job only applies when there are multiple build targets; otherwise it is skipped.
   # Rebuild from native cache artifacts to create one multi-architecture image.
-  build_multi_arch_image:
+  consolidate_multi_arch_image:
     name: "${{ inputs.job_name }} / Build Multi Architecture Image"
     runs-on: ${{ inputs.multi_arch_actions_runner }}
-    needs: [build_native_images]
+    needs: [build_single_arch_images]
     if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
     steps:
       - name: Checkout
@@ -448,7 +453,7 @@ jobs:
           BUILD_PATH: ${{ inputs.build_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
           BUILD_TARGETS: ${{ inputs.build_targets }}
-          ECR_CACHE_REF: ${{ inputs.image_name }}:build-cache
+          ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
         run: |
           ${{ inputs.cli_commands }}
