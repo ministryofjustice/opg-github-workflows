@@ -175,16 +175,17 @@ defaults:
   run:
     shell: bash
 
-# Native architecture build and scan steps. A single build target is published from this job.
+# Native architecture build and scan steps. Each matrix entry creates one native build;
+# publishing is selected below based on whether the matrix has one or multiple entries.
 jobs:
   build_single_arch_images:
-    # The caller-provided matrix selects the native runner, platform, and temporary image tag for each architecture.
+    # Each matrix entry selects the native runner, platform, and temporary image tag for one architecture.
     strategy:
       fail-fast: true
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
 
-    name: "${{ inputs.job_name }} / Build Single-Arch Image (${{ matrix.tag }}) / ${{ inputs.image_display_name || inputs.image_name }}"
+    name: "${{ inputs.job_name }} / Build Single-Arch Image (${{ matrix.tag }}) / ${{ inputs.image_display_name || inputs.image_name }} / Platform: ${{ matrix.platform }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - name: Checkout
@@ -358,8 +359,8 @@ jobs:
           category: "snyk-${{ matrix.tag }}-2"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
 
-    # Configure AWS credentials for the push role and push the built image to ECR.
-      # A one-entry matrix publishes directly and skips cache artifacts and multi-architecture consolidation.
+    # A one-entry matrix publishes the native image directly. With multiple entries, direct
+    # publishing is skipped and the consolidation job publishes the multi-architecture image.
       - name: Configure AWS Credentials (Push Role)
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -384,12 +385,16 @@ jobs:
           BUILD_TARGET: ${{ inputs.build_target }}
           CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
           ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
-          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+          IMAGE_NAME: ${{ inputs.image_name }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
           BUILD_TARGET_OPTION=""
           if [ -n "${BUILD_TARGET}" ]; then
             BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
           fi
+
+          PLATFORM_ARCH="${PLATFORM##*/}"
+          IMAGE_REF="${IMAGE_NAME}:${PLATFORM_ARCH}"
 
           docker buildx build \
             --platform "${{ matrix.platform }}" \
@@ -401,8 +406,8 @@ jobs:
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
 
-      - name: Upload Native Build Cache
-        if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
+      - name: Upload Single-Arch image build Cache
+        if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
@@ -454,7 +459,7 @@ jobs:
           BUILD_TARGET: ${{ inputs.build_target }}
           BUILD_TARGETS: ${{ inputs.build_targets }}
           ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
-          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}-multi-arch
         run: |
           ${{ inputs.cli_commands }}
           PLATFORMS="$(jq -r '[.[].platform] | join(",")' <<< "${BUILD_TARGETS}")"
