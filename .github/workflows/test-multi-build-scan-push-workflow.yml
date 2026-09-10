@@ -1,0 +1,488 @@
+name: "[Build - Docker] Build, Scan and Push Image"
+
+on:
+  workflow_call:
+    inputs:
+      # Docker image info used by build, scan, push, and cache references.
+      image_name:
+        type: string
+        description: "ECR image name"
+        required: true
+
+      image_tag:
+        type: string
+        description: "Tag for docker image"
+        default: "latest"
+        required: false
+
+      # Artifacts exchanged between isolated workflow jobs.
+      artifact_name:
+        type: string
+        description: "Unique name prefix for native build cache artifacts"
+        default: "multi-arch-image"
+        required: false
+
+      artifact_directory:
+        type: string
+        description: "Directory to store the Snyk image and native build caches"
+        default: "/tmp/images"
+        required: false
+
+      snyk_sarif_directory:
+        type: string
+        description: "Directory to store Snyk SARIF files"
+        default: "test-results"
+        required: false
+
+      # Docker build inputs supplied by the consuming repository.
+      build_options:
+        type: string
+        description: "A list of docker build options"
+        required: false
+
+      build_path:
+        type: string
+        description: "Build path for docker context"
+        default: "."
+        required: false
+
+      cli_commands:
+        type: string
+        description: "Any cli commands that might need to be run before a build such as make targets"
+        required: false
+
+      # Check names shown in the consuming repository.
+      job_name:
+        type: string
+        description: "Name of build image job for checking status against"
+        default: "Docker Build, Scan and Push"
+        required: false
+
+      image_display_name:
+        type: string
+        description: "Optional image name to display in the job title, without the ECR registry"
+        default: ""
+        required: false
+
+      build_target:
+        type: string
+        description: "Single build target for the Dockerfile"
+        default: ""
+        required: false
+
+      build_cache_tag:
+        type: string
+        description: "Tag used when pushing the ECR build cache image, can be overridden by consuming repositories"
+        default: "build-cache"
+        required: false
+
+      # Multi-architecture build matrix. A single target skips consolidation.
+      build_targets:
+        type: string
+        description: "JSON matrix of native build targets. Each entry requires actions_runner, platform, and tag"
+        default: '[{"actions_runner":"ubuntu-latest","platform":"linux/amd64","tag":"AMD64"}]'
+        required: false
+
+      # AWS/OIDC settings for separate build and push roles.
+      aws_region:
+        type: string
+        description: "AWS region"
+        default: "eu-west-1"
+        required: false
+
+      aws_role_duration_seconds:
+        type: number
+        description: "AWS role duration seconds"
+        default: 3600
+        required: false
+
+      oidc_role_session_name_build:
+        type: string
+        description: "OIDC role session name for pulling from ECR and building images"
+        default: "OPGDockerBuildGithubAction"
+        required: false
+
+      oidc_role_session_name_push:
+        type: string
+        description: "OIDC role session name for pushing images and publishing ECR cache"
+        default: "OPGDockerPushGithubAction"
+        required: false
+
+      oidc_role_to_assume_build:
+        type: string
+        description: "OIDC role used to pull from ECR and read ECR cache during native builds"
+        required: true
+
+      oidc_role_to_assume_push:
+        type: string
+        description: "OIDC role used to push images and publish ECR cache"
+        required: true
+
+      push_images:
+        type: boolean
+        description: "Push built images to ECR"
+        default: true
+        required: false
+
+      # Runner used for the multi-architecture consolidation job.
+      multi_arch_actions_runner:
+        type: string
+        description: "GitHub Actions runner for multi-architecture image consolidation"
+        default: "ubuntu-latest"
+        required: false
+
+      # Snyk scanner image, policy, and container test options.
+      enable_snyk_scanning:
+        type: boolean
+        description: "Enable Snyk container scanning before images are pushed"
+        default: true
+        required: false
+
+      snyk_ecr_registry_id:
+        type: string
+        description: "AWS account ID for the ECR registry containing the Snyk image"
+        default: "311462405659"
+        required: false
+
+      snyk_image:
+        type: string
+        description: "Snyk image reference"
+        default: "shared/snyk:main-cli-1.1303.2-v0.3.0"
+        required: false
+
+      snyk_policy_path:
+        type: string
+        description: "Path to the Snyk policy file holding ignores/patches for the calling repository"
+        default: "./.snyk"
+        required: false
+
+      snyk_container_options:
+        type: string
+        description: "Additional options to pass to snyk container test (e.g., --severity-threshold=high)"
+        default: ""
+        required: false
+
+    secrets:
+      SNYK_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+
+defaults:
+  run:
+    shell: bash
+
+# Native architecture build and scan steps. Each matrix entry creates one native build;
+# publishing is selected below based on whether the matrix has one or multiple entries.
+jobs:
+  build_single_arch_images:
+    # Each matrix entry selects the native runner, platform, and temporary image tag for one architecture.
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJSON(inputs.build_targets) }}
+
+    name: "${{ matrix.platform }}"
+    runs-on: ${{ matrix.actions_runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      # Configure AWS credentials for pulling images and the ECR build cache.
+      - name: Configure AWS Credentials (Build Role)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
+          role-session-name: ${{ inputs.oidc_role_session_name_build }}
+          role-to-assume: ${{ inputs.oidc_role_to_assume_build }}
+
+      - name: Login to ECR (Build Role)
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      # On a cache miss, this job pulls and saves the image so later builds can restore it directly.
+      - name: Restore Snyk Image Cache
+        if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ${{ inputs.artifact_directory }}/snyk-cache
+          key: snyk_cache_${{ runner.os }}_${{ runner.arch }}_${{ inputs.snyk_image }}
+
+  # Login to ECR for the Snyk image if the cache restore failed.
+      - name: Login to Snyk ECR
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_cache.outputs.cache-hit != 'true' && inputs.snyk_ecr_registry_id != '' }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        with:
+          registries: ${{ inputs.snyk_ecr_registry_id }}
+
+      - name: Pull and Cache Snyk Image
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_cache.outputs.cache-hit != 'true' }}
+        env:
+          AWS_REGION: ${{ inputs.aws_region }}
+          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
+          SNYK_CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/snyk-cache
+          SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
+        run: |
+          mkdir -p "${SNYK_CACHE_DIRECTORY}"
+          SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
+          docker save "${SNYK_REGISTRY}/${SNYK_IMAGE}" --output "${SNYK_CACHE_PATH}"
+
+      - name: Load Snyk Image
+        if: ${{ inputs.enable_snyk_scanning }}
+        env:
+          SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
+        run: docker load --input "${SNYK_CACHE_PATH}"
+
+      # Build the native image and save the cache.
+      - name: Build single image and export Cache
+        env:
+          BUILD_OPTIONS: ${{ inputs.build_options }}
+          BUILD_PATH: ${{ inputs.build_path }}
+          BUILD_TARGET: ${{ inputs.build_target }}
+          CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+          ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
+        run: |
+          rm -rf "${CACHE_DIRECTORY}"
+          mkdir -p "$(dirname "${CACHE_DIRECTORY}")"
+          ${{ inputs.cli_commands }}
+
+          BUILD_TARGET_OPTION=""
+          if [ -n "${BUILD_TARGET}" ]; then
+            BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
+          fi
+
+          echo "Building ${IMAGE_REF} for ${{ matrix.platform }}"
+          # Restore the shared ECR cache and export a local cache for publication or consolidation.
+          docker buildx build \
+            --platform "${{ matrix.platform }}" \
+            --tag "${IMAGE_REF}" \
+            --load \
+            --cache-from type=registry,ref="${ECR_CACHE_REF}" \
+            --cache-to type=local,dest="${CACHE_DIRECTORY}",mode=max \
+            ${BUILD_TARGET_OPTION} \
+            ${BUILD_OPTIONS} \
+            "${BUILD_PATH}"
+
+      - name: Resolve Snyk policy file
+        if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_policy
+        env:
+          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path }}
+          SNYK_SARIF_DIRECTORY: ${{ inputs.snyk_sarif_directory }}
+        run: |
+          if [ -f "${SNYK_POLICY_PATH}" ]; then
+            POLICY_FILE="$(realpath "${SNYK_POLICY_PATH}")"
+          elif [ -f "${GITHUB_WORKSPACE}/.github/.snyk" ]; then
+            POLICY_FILE="$(realpath "${GITHUB_WORKSPACE}/.github/.snyk")"
+          else
+            GENERATED_POLICY_PATH="${SNYK_SARIF_DIRECTORY}/.snyk-${{ matrix.tag }}"
+            mkdir -p "${SNYK_SARIF_DIRECTORY}"
+            printf 'version: v1.25.0\nignore: {}\npatch: {}\n' > "${GENERATED_POLICY_PATH}"
+            echo "::warning::No Snyk policy file found at ${SNYK_POLICY_PATH}; using empty policy file ${GENERATED_POLICY_PATH}"
+            POLICY_FILE="$(realpath "${GENERATED_POLICY_PATH}")"
+          fi
+
+          echo "Using Snyk policy file ${POLICY_FILE}"
+          cat "${POLICY_FILE}"
+          echo "path=${POLICY_FILE}" >> "${GITHUB_OUTPUT}"
+
+  # Scan the built image with Snyk.
+  # This scan and its SARIF processing complete before either push path can run.
+      - name: Scan built image with Snyk
+        if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_scan
+        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@722a5f955424aaba01e9ca43d68390cd4048d6e1 # v4.10.2
+        with:
+          SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ matrix.tag }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          snyk_policy_path: ${{ steps.snyk_policy.outputs.path }}
+          snyk_test_args: ${{ inputs.snyk_container_options }}
+          sarif_filepath: ${{ inputs.snyk_sarif_directory }}
+          sarif_filename: snyk-${{ matrix.tag }}.sarif
+
+  # GitHub's upload-sarif action rejects files with more than 20 runs.
+      - name: Count Snyk SARIF runs
+        id: sarif_check
+        if: ${{ inputs.enable_snyk_scanning && steps.snyk_scan.outcome == 'success' && hashFiles(format('{0}/snyk-{1}.sarif', inputs.snyk_sarif_directory, matrix.tag)) != '' }}
+        env:
+          SNYK_SARIF_DIRECTORY: ${{ inputs.snyk_sarif_directory }}
+        run: |
+          FILE="${SNYK_SARIF_DIRECTORY}/snyk-${{ matrix.tag }}.sarif"
+          RUNS=$(jq '.runs | length' "${FILE}")
+          echo "SARIF file has ${RUNS} runs"
+          # GitHub's upload-sarif action rejects files with more than 20 runs
+          if [ "${RUNS}" -gt 20 ]; then
+            echo "split=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "split=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Split Snyk SARIF when upload limit is exceeded
+        if: ${{ steps.sarif_check.outputs.split == 'true' }}
+        env:
+          SNYK_SARIF_DIRECTORY: ${{ inputs.snyk_sarif_directory }}
+        run: |
+          FILE="${SNYK_SARIF_DIRECTORY}/snyk-${{ matrix.tag }}.sarif"
+          BASE="${SNYK_SARIF_DIRECTORY}/snyk-${{ matrix.tag }}"
+          jq '.runs = .runs[0:20]' "${FILE}" > "${BASE}_part_01.sarif"
+          jq '.runs = .runs[20:]' "${FILE}" > "${BASE}_part_02.sarif"
+
+      - name: Upload Snyk SARIF
+        if: ${{ steps.sarif_check.outputs.split == 'false' }}
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: "snyk-${{ matrix.tag }}"
+          sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}.sarif"
+
+      - name: Upload Snyk SARIF part 1
+        if: ${{ steps.sarif_check.outputs.split == 'true' }}
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: "snyk-${{ matrix.tag }}-1"
+          sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_01.sarif"
+
+      - name: Upload Snyk SARIF part 2
+        if: ${{ steps.sarif_check.outputs.split == 'true' && hashFiles(format('{0}/snyk-{1}_part_02.sarif', inputs.snyk_sarif_directory, matrix.tag)) != '' }}
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: "snyk-${{ matrix.tag }}-2"
+          sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
+
+    # A one-entry matrix publishes the native image directly. With multiple entries, direct
+    # publishing is skipped and the consolidation job publishes the multi-architecture image.
+      - name: Configure AWS Credentials (Push Role)
+        if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
+          role-session-name: ${{ inputs.oidc_role_session_name_push }}
+          role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
+
+      # Login to ECR using the push role credentials before pushing any images.
+      - name: Login to ECR (Push Role)
+        if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      # Build and push the single-architecture image.
+      - name: Push Single-Architecture Image and ECR Cache
+        if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
+        env:
+          BUILD_OPTIONS: ${{ inputs.build_options }}
+          BUILD_PATH: ${{ inputs.build_path }}
+          BUILD_TARGET: ${{ inputs.build_target }}
+          CACHE_DIRECTORY: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+          ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
+          IMAGE_NAME: ${{ inputs.image_name }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          BUILD_TARGET_OPTION=""
+          if [ -n "${BUILD_TARGET}" ]; then
+            BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
+          fi
+
+          PLATFORM_ARCH="${PLATFORM##*/}"
+          IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
+          PLATFORM_IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}-${PLATFORM_ARCH}"
+
+          docker buildx build \
+            --platform "${{ matrix.platform }}" \
+            --tag "${IMAGE_REF}" \
+            --tag "${PLATFORM_IMAGE_REF}" \
+            --cache-from type=local,src="${CACHE_DIRECTORY}" \
+            --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
+            --push \
+            ${BUILD_TARGET_OPTION} \
+            ${BUILD_OPTIONS} \
+            "${BUILD_PATH}"
+
+      - name: Upload Single-Arch image build Cache
+        if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
+          path: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
+
+  # This job only applies when there are multiple build targets; otherwise it is skipped.
+  # Rebuild from native cache artifacts to create one multi-architecture image.
+  consolidate_multi_arch_image:
+    name: "multi-architecture build"
+    runs-on: ${{ inputs.multi_arch_actions_runner }}
+    needs: [build_single_arch_images]
+    if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # QEMU covers cache misses that execute a non-native Dockerfile layer during consolidation.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Download Native Build Caches
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: ${{ inputs.artifact_directory }}/cache
+          pattern: cache-${{ inputs.artifact_name }}-*
+          merge-multiple: false
+
+      - name: Configure AWS Credentials (Push Role)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
+          role-session-name: ${{ inputs.oidc_role_session_name_push }}
+          role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
+
+      - name: Login to ECR (Push Role)
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Push Multi-Architecture Image and ECR Cache
+        env:
+          ARTIFACT_DIRECTORY: ${{ inputs.artifact_directory }}
+          ARTIFACT_NAME: ${{ inputs.artifact_name }}
+          BUILD_OPTIONS: ${{ inputs.build_options }}
+          BUILD_PATH: ${{ inputs.build_path }}
+          BUILD_TARGET: ${{ inputs.build_target }}
+          BUILD_TARGETS: ${{ inputs.build_targets }}
+          ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+        run: |
+          ${{ inputs.cli_commands }}
+          PLATFORMS="$(jq -r '[.[].platform] | join(",")' <<< "${BUILD_TARGETS}")"
+          CACHE_OPTIONS=""
+          while read -r TARGET_TAG; do
+            CACHE_OPTIONS="${CACHE_OPTIONS} --cache-from type=local,src=${ARTIFACT_DIRECTORY}/cache/cache-${ARTIFACT_NAME}-${TARGET_TAG}"
+          done < <(jq -r '.[].tag' <<< "${BUILD_TARGETS}")
+          BUILD_TARGET_OPTION=""
+          if [ -n "${BUILD_TARGET}" ]; then
+            BUILD_TARGET_OPTION="--target ${BUILD_TARGET}"
+          fi
+
+          echo "Consolidating ${IMAGE_REF} for ${PLATFORMS}"
+          # Consume every native cache, then publish the image index and shared ECR cache together.
+          docker buildx build \
+            --platform "${PLATFORMS}" \
+            --tag "${IMAGE_REF}" \
+            --push \
+            ${CACHE_OPTIONS} \
+            --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
+            ${BUILD_TARGET_OPTION} \
+            ${BUILD_OPTIONS} \
+            "${BUILD_PATH}"
