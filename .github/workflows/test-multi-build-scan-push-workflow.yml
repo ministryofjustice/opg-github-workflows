@@ -185,7 +185,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
 
-    name: "${{ inputs.job_name }} / Build Single-Arch Image (${{ matrix.tag }}) / ${{ inputs.image_display_name || inputs.image_name }} / Platform: ${{ matrix.platform }}"
+    name: "${{ inputs.job_name }} / ${{ inputs.image_display_name || inputs.image_name }}/${{ matrix.tag }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - name: Checkout
@@ -416,7 +416,7 @@ jobs:
   # This job only applies when there are multiple build targets; otherwise it is skipped.
   # Rebuild from native cache artifacts to create one multi-architecture image.
   consolidate_multi_arch_image:
-    name: "${{ inputs.job_name }} / Build Multi Architecture Image"
+    name: "${{ inputs.job_name }} / ${{ inputs.image_display_name || inputs.image_name }}/multi-arch"
     runs-on: ${{ inputs.multi_arch_actions_runner }}
     needs: [build_single_arch_images]
     if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
