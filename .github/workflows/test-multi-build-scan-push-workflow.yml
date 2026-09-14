@@ -419,8 +419,7 @@ jobs:
   # This job only applies when there are multiple build targets; otherwise it is skipped.
   # Rebuild from native cache artifacts to create one multi-architecture image.
   consolidate_multi_arch_image:
-    # Uses inputs directly (rather than needs.*.outputs) so the name renders correctly even when this job is skipped
-    name: "${{ inputs.image_display_name || inputs.image_name }} - multi-architecture build"
+    name: "Multi-architecture build"
     runs-on: ${{ inputs.multi_arch_actions_runner }}
     needs: [build_single_arch_images]
     if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
