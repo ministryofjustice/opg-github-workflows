@@ -60,7 +60,7 @@ on:
 
       image_display_name:
         type: string
-        description: "Image name to display in job titles, without the ECR registry"
+        description: "Image name to display in job titles, without the full ECR registry path"
         default: ""
         required: false
 
