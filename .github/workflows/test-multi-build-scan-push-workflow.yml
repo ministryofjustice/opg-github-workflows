@@ -58,12 +58,6 @@ on:
         default: "Docker Build, Scan and Push"
         required: false
 
-      image_display_name:
-        type: string
-        description: "Optional image name to display in the job title, without the ECR registry"
-        default: ""
-        required: false
-
       build_target:
         type: string
         description: "Single build target for the Dockerfile"
@@ -185,7 +179,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(inputs.build_targets) }}
 
-    name: "${{ matrix.platform }}"
+    name: "${{ inputs.image_name }} - ${{ matrix.platform }}"
     runs-on: ${{ matrix.actions_runner }}
     steps:
       - name: Checkout
@@ -419,7 +413,7 @@ jobs:
   # This job only applies when there are multiple build targets; otherwise it is skipped.
   # Rebuild from native cache artifacts to create one multi-architecture image.
   consolidate_multi_arch_image:
-    name: "multi-architecture build"
+    name: "${{ inputs.image_name }} - multi-architecture build"
     runs-on: ${{ inputs.multi_arch_actions_runner }}
     needs: [build_single_arch_images]
     if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
