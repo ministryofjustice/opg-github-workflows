@@ -187,13 +187,7 @@ jobs:
 
     name: "${{ inputs.image_display_name || inputs.image_name }} - ${{ matrix.platform }}"
     runs-on: ${{ matrix.actions_runner }}
-    outputs:
-      display_name: ${{ steps.display_name.outputs.value }}
     steps:
-      - name: Resolve image display name
-        id: display_name
-        run: echo "value=${{ inputs.image_display_name || inputs.image_name }}" >> "$GITHUB_OUTPUT"
-
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -425,7 +419,8 @@ jobs:
   # This job only applies when there are multiple build targets; otherwise it is skipped.
   # Rebuild from native cache artifacts to create one multi-architecture image.
   consolidate_multi_arch_image:
-    name: "${{ needs.build_single_arch_images.outputs.display_name }} - multi-architecture build"
+    # Uses inputs directly (rather than needs.*.outputs) so the name renders correctly even when this job is skipped
+    name: "${{ inputs.image_display_name || inputs.image_name }} - multi-architecture build"
     runs-on: ${{ inputs.multi_arch_actions_runner }}
     needs: [build_single_arch_images]
     if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
