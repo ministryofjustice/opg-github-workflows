@@ -109,10 +109,6 @@ For this workflow:
   - Format: `<caller_job_name> / Multi-architecture build`
   - Example: `Build, Scan and Push Multi-Arch Image / Multi-architecture build`
 
-### Example Workflow Cosumptiom (Online-LPA)
-
-![Example Workflow Consumption](./example-workflow-consumption.png)
-
 ## Key Inputs and Secrets
 
 ### Required
