@@ -298,7 +298,6 @@ jobs:
           echo "path=${POLICY_FILE}" >> "${GITHUB_OUTPUT}"
 
   # Scan the built image with Snyk.
-  # This scan and its SARIF processing complete before either push path can run.
       - name: Scan built image with Snyk
         if: ${{ inputs.enable_snyk_scanning }}
         id: snyk_scan
@@ -359,8 +358,8 @@ jobs:
           category: "snyk-${{ matrix.tag }}-2"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
 
-    # A one-entry matrix publishes the native image directly. With multiple entries, direct
-    # publishing is skipped and the consolidation job publishes the multi-architecture image.
+    # A single-entry matrix publishes the native image directly.
+    # With multiple entries, single image direct publishing is skipped and the consolidation job publishes the multi-architecture image.
       - name: Configure AWS Credentials (Push Role)
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -486,5 +485,3 @@ jobs:
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
-
-# re-pushing branch as last commit had deploy errors
