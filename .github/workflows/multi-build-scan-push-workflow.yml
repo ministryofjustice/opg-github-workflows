@@ -196,7 +196,7 @@ jobs:
 
       # Configure AWS credentials for pulling images and the ECR build cache.
       - name: Configure AWS Credentials (Build Role)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
           aws-region: ${{ inputs.aws_region }}
           mask-aws-account-id: "true"
@@ -339,21 +339,21 @@ jobs:
 
       - name: Upload Snyk SARIF
         if: ${{ steps.sarif_check.outputs.split == 'false' }}
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
         with:
           category: "snyk-${{ matrix.tag }}"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}.sarif"
 
       - name: Upload Snyk SARIF part 1
         if: ${{ steps.sarif_check.outputs.split == 'true' }}
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
         with:
           category: "snyk-${{ matrix.tag }}-1"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_01.sarif"
 
       - name: Upload Snyk SARIF part 2
         if: ${{ steps.sarif_check.outputs.split == 'true' && hashFiles(format('{0}/snyk-{1}_part_02.sarif', inputs.snyk_sarif_directory, matrix.tag)) != '' }}
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
         with:
           category: "snyk-${{ matrix.tag }}-2"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
@@ -362,7 +362,7 @@ jobs:
     # With multiple entries, single image direct publishing is skipped and the consolidation job publishes the multi-architecture image.
       - name: Configure AWS Credentials (Push Role)
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
           aws-region: ${{ inputs.aws_region }}
           mask-aws-account-id: "true"
@@ -441,7 +441,7 @@ jobs:
           merge-multiple: false
 
       - name: Configure AWS Credentials (Push Role)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
           aws-region: ${{ inputs.aws_region }}
           mask-aws-account-id: "true"
