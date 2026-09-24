@@ -148,13 +148,13 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
 
-      - uses: ministryofjustice/opg-github-actions/actions/github-deploy-key@722a5f955424aaba01e9ca43d68390cd4048d6e1 # v4.10.2
+      - uses: ministryofjustice/opg-github-actions/actions/github-deploy-key@ae37b9b322286123971417e82b665e56e9d6aa3f # v4.10.3
         if: inputs.use_ssh_private_key == true
         with:
           deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Configure AWS Credentials For Terraform
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           aws-region: ${{ inputs.aws_region }}
           role-duration-seconds: 3600
@@ -187,7 +187,7 @@ jobs:
       - id: register_workspace
         if: inputs.is_ephemeral == true
         name: Register ephemeral workspace
-        uses: ministryofjustice/opg-github-actions/actions/terraform-workspace-manager@722a5f955424aaba01e9ca43d68390cd4048d6e1 # v4.10.2
+        uses: ministryofjustice/opg-github-actions/actions/terraform-workspace-manager@ae37b9b322286123971417e82b665e56e9d6aa3f # v4.10.3
         with:
           aws_account_id: ${{ inputs.workspace_manager_aws_account_id }}
           aws_iam_role: ${{ inputs.workspace_manager_aws_iam_role }}
