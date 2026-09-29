@@ -138,12 +138,6 @@ on:
         default: true
         required: false
 
-      enable_snyk_monitor:
-        type: boolean
-        description: "Enable Snyk container monitoring for images after they are pushed"
-        default: false
-        required: false
-
       snyk_ecr_registry_id:
         type: string
         description: "AWS account ID for the ECR registry containing the Snyk image"
@@ -491,61 +485,3 @@ jobs:
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
-
-# Snyk Container Monitor job - Monitors the pushed Docker images using Snyk for vulnerabilities
-  snyk_monitor:
-    name: "Snyk Container Monitor"
-    runs-on: ubuntu-latest
-    needs: [build_single_arch_images, consolidate_multi_arch_image]
-    if: ${{ always() && inputs.enable_snyk_monitor && inputs.push_images && needs.build_single_arch_images.result == 'success' && (needs.consolidate_multi_arch_image.result == 'success' || needs.consolidate_multi_arch_image.result == 'skipped') }}
-    steps:
-      - name: Configure AWS Credentials (Build Role)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
-        with:
-          aws-region: ${{ inputs.aws_region }}
-          mask-aws-account-id: "true"
-          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
-          role-session-name: ${{ inputs.oidc_role_session_name_build }}
-          role-to-assume: ${{ inputs.oidc_role_to_assume_build }}
-
-      - name: Login to Snyk ECR
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
-        with:
-          registries: ${{ inputs.snyk_ecr_registry_id }}
-
-      - name: Pull Snyk CLI image
-        env:
-          AWS_REGION: ${{ inputs.aws_region }}
-          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
-          SNYK_IMAGE: ${{ inputs.snyk_image }}
-        run: |
-          SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
-
-      - name: Configure AWS Credentials (Push Role)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
-        with:
-          aws-region: ${{ inputs.aws_region }}
-          mask-aws-account-id: "true"
-          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
-          role-session-name: ${{ inputs.oidc_role_session_name_push }}
-          role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
-
-      - name: Login to ECR (Push Role)
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
-
-      - name: Pull pushed image and monitor with Snyk
-        env:
-          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
-          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
-          AWS_REGION: ${{ inputs.aws_region }}
-          SNYK_IMAGE: ${{ inputs.snyk_image }}
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          docker pull "${IMAGE_REF}"
-          SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          docker run --rm \
-            --env SNYK_TOKEN \
-            --volume /var/run/docker.sock:/var/run/docker.sock \
-            "${SNYK_REGISTRY}/${SNYK_IMAGE}" \
-            container monitor "${IMAGE_REF}"
