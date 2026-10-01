@@ -62,12 +62,8 @@ permissions:
 
 jobs:
   snyk_monitor:
-    name: "Snyk monitor ${{ matrix.image.name }}"
+    name: "Snyk Container Monitor"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image: ${{ fromJSON(inputs.images) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -95,33 +91,49 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_IMAGE: ${{ inputs.snyk_image }}
           SNYK_ORG: ${{ inputs.snyk_org }}
-          IMAGE_NAME: ${{ matrix.image.name }}
-          IMAGE_TAG: ${{ matrix.image.tag }}
-          POLICY_PATH: ${{ matrix.image.policy }}
+          IMAGES: ${{ inputs.images }}
           DEPLOYMENT_ENVIRONMENT: ${{ inputs.deployment_environment }}
           REPOSITORY: ${{ github.repository }}
         run: |
           ECR_REGISTRY="${ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          image_ref="${ECR_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
           docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
-          docker pull "${image_ref}"
 
-          extra_args=()
-          if [ -n "${SNYK_ORG}" ]; then
-            extra_args+=("--org=${SNYK_ORG}")
-          fi
-          if [ -n "${POLICY_PATH}" ]; then
-            extra_args+=("--policy-path=/project/${POLICY_PATH}")
+          if [ "$(jq 'length' <<< "${IMAGES}")" -eq 0 ]; then
+            echo "No images provided for Snyk monitoring" >&2
+            exit 1
           fi
 
-          docker run --rm \
-            --env SNYK_TOKEN \
-            --volume /var/run/docker.sock:/var/run/docker.sock \
-            --volume "${GITHUB_WORKSPACE}:/project:ro" \
-            "${SNYK_REGISTRY}/${SNYK_IMAGE}" \
-            container monitor "${image_ref}" \
-            --project-name="${IMAGE_NAME}" \
-            --target-reference="${DEPLOYMENT_ENVIRONMENT}" \
-            --project-tags="repository=${REPOSITORY},service=${IMAGE_NAME//\//-}" \
-            "${extra_args[@]}"
+          while IFS= read -r image; do
+            IMAGE_NAME="$(jq -r '.name' <<< "${image}")"
+            IMAGE_TAG="$(jq -r '.tag' <<< "${image}")"
+            POLICY_PATH="$(jq -r '.policy // empty' <<< "${image}")"
+            image_ref="${ECR_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+            if [ -z "${IMAGE_NAME}" ] || [ -z "${IMAGE_TAG}" ]; then
+              echo "Each monitored image must include name and tag" >&2
+              exit 1
+            fi
+
+            echo "Monitoring ${image_ref}"
+            docker pull "${image_ref}"
+
+            extra_args=()
+            if [ -n "${SNYK_ORG}" ]; then
+              extra_args+=("--org=${SNYK_ORG}")
+            fi
+            if [ -n "${POLICY_PATH}" ]; then
+              extra_args+=("--policy-path=/project/${POLICY_PATH}")
+            fi
+
+            docker run --rm \
+              --env SNYK_TOKEN \
+              --volume /var/run/docker.sock:/var/run/docker.sock \
+              --volume "${GITHUB_WORKSPACE}:/project:ro" \
+              "${SNYK_REGISTRY}/${SNYK_IMAGE}" \
+              container monitor "${image_ref}" \
+              --project-name="${IMAGE_NAME}" \
+              --target-reference="${DEPLOYMENT_ENVIRONMENT}" \
+              --project-tags="repository=${REPOSITORY},service=${IMAGE_NAME//\//-}" \
+              "${extra_args[@]}"
+          done < <(jq -c '.[]' <<< "${IMAGES}")
