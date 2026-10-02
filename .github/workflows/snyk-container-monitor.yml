@@ -1,0 +1,156 @@
+name: "[Snyk] Container Monitor"
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  workflow_call:
+    inputs:
+      images:
+        type: string
+        description: "Optional JSON list of extra images to monitor. Built images opted into Snyk monitoring are discovered from workflow artifacts."
+        default: "[]"
+        required: false
+      oidc_role_to_assume:
+        type: string
+        description: "OIDC role used to pull monitored images and the Snyk CLI image from ECR"
+        required: true
+      ecr_registry_id:
+        type: string
+        description: "AWS account ID for the ECR registry containing the monitored images"
+        required: true
+      aws_region:
+        type: string
+        description: "AWS region hosting ECR"
+        default: "eu-west-1"
+        required: false
+      aws_role_duration_seconds:
+        type: number
+        description: "AWS role duration in seconds"
+        default: 3600
+        required: false
+      oidc_role_session_name:
+        type: string
+        description: "OIDC role session name for monitoring ECR images"
+        default: "OPGSnykContainerMonitorGithubAction"
+        required: false
+      snyk_ecr_registry_id:
+        type: string
+        description: "AWS account ID for the ECR registry containing the Snyk CLI image"
+        required: true
+      snyk_image:
+        type: string
+        description: "Snyk image reference in ECR"
+        default: "shared/snyk:main-cli-1.1303.2-v0.3.0"
+        required: false
+      snyk_org:
+        type: string
+        description: "Optional Snyk organisation ID to send projects to"
+        default: ""
+        required: false
+      deployment_environment:
+        type: string
+        description: "Deployment environment used to monitor specific target images in Snyk UI"
+        required: true
+    secrets:
+      SNYK_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  snyk_monitor:
+    name: "Snyk Container Monitor"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download built image manifests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: image-manifest-${{ github.run_id }}-*
+          path: ${{ runner.temp }}/snyk-monitor-artifacts
+          merge-multiple: false
+          if-no-artifact-found: ignore
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: "true"
+          role-to-assume: ${{ inputs.oidc_role_to_assume }}
+          role-duration-seconds: ${{ inputs.aws_role_duration_seconds }}
+          role-session-name: ${{ inputs.oidc_role_session_name }}
+
+      - name: ECR Login
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        with:
+          registries: "${{ inputs.ecr_registry_id }},${{ inputs.snyk_ecr_registry_id }}"
+
+      - name: Snyk container monitor
+        env:
+          AWS_REGION: ${{ inputs.aws_region }}
+          ECR_REGISTRY_ID: ${{ inputs.ecr_registry_id }}
+          SNYK_ECR_REGISTRY_ID: ${{ inputs.snyk_ecr_registry_id }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
+          SNYK_ORG: ${{ inputs.snyk_org }}
+          IMAGES: ${{ inputs.images }}
+          DEPLOYMENT_ENVIRONMENT: ${{ inputs.deployment_environment }}
+          REPOSITORY: ${{ github.repository }}
+          MONITOR_ARTIFACTS_PATH: ${{ runner.temp }}/snyk-monitor-artifacts
+        run: |
+          ECR_REGISTRY="${ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
+
+          ARTIFACT_IMAGES="$(find "${MONITOR_ARTIFACTS_PATH}" -type f -name images.json -print0 | xargs -0 -r jq -s 'add // []')"
+          ARTIFACT_IMAGES="${ARTIFACT_IMAGES:-[]}"
+          IMAGES="$(jq -cn \
+            --argjson explicit "${IMAGES}" \
+            --argjson built "${ARTIFACT_IMAGES}" \
+            'reduce ($explicit + $built)[] as $image ([]; if any(.[]; .name == $image.name and .tag == $image.tag) then . else . + [$image] end)')"
+
+          if [ "$(jq 'length' <<< "${IMAGES}")" -eq 0 ]; then
+            echo "No images to monitor. Pass images or enable Snyk monitoring on pushed image builds." >&2
+            exit 1
+          fi
+
+          while IFS= read -r image; do
+            IMAGE_NAME="$(jq -r '.name' <<< "${image}")"
+            IMAGE_TAG="$(jq -r '.tag' <<< "${image}")"
+            POLICY_PATH="$(jq -r '.policy // empty' <<< "${image}")"
+            image_ref="${ECR_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+            if [ -z "${IMAGE_NAME}" ] || [ -z "${IMAGE_TAG}" ]; then
+              echo "Each monitored image must include name and tag" >&2
+              exit 1
+            fi
+
+            echo "Monitoring ${image_ref}"
+            docker pull "${image_ref}"
+
+            extra_args=()
+            if [ -n "${SNYK_ORG}" ]; then
+              extra_args+=("--org=${SNYK_ORG}")
+            fi
+            if [ -n "${POLICY_PATH}" ]; then
+              extra_args+=("--policy-path=/project/${POLICY_PATH}")
+            fi
+
+            docker run --rm \
+              --env SNYK_TOKEN \
+              --volume /var/run/docker.sock:/var/run/docker.sock \
+              --volume "${GITHUB_WORKSPACE}:/project:ro" \
+              "${SNYK_REGISTRY}/${SNYK_IMAGE}" \
+              container monitor "${image_ref}" \
+              --project-name="${IMAGE_NAME}" \
+              --target-reference="${DEPLOYMENT_ENVIRONMENT}" \
+              --project-tags="repository=${REPOSITORY},service=${IMAGE_NAME//\//-}" \
+              "${extra_args[@]}"
+          done < <(jq -c '.[]' <<< "${IMAGES}")
