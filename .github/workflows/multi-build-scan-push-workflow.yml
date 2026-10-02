@@ -138,6 +138,12 @@ on:
         default: true
         required: false
 
+      upload_image_manifest:
+        type: boolean
+        description: "Upload an image manifest after a successful push for downstream workflows"
+        default: false
+        required: false
+
       snyk_ecr_registry_id:
         type: string
         description: "AWS account ID for the ECR registry containing the Snyk image"
@@ -408,6 +414,39 @@ jobs:
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
 
+      - name: Create image manifest
+        if: ${{ inputs.push_images && inputs.upload_image_manifest && fromJSON(inputs.build_targets)[1] == null }}
+        id: snyk_monitor_manifest
+        env:
+          IMAGE_NAME: ${{ inputs.image_name }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path }}
+        run: |
+          if [[ "${IMAGE_NAME}" == *.amazonaws.com/* ]]; then
+            IMAGE_REPOSITORY="${IMAGE_NAME#*/}"
+          else
+            IMAGE_REPOSITORY="${IMAGE_NAME}"
+          fi
+
+          mkdir -p "${RUNNER_TEMP}/snyk-monitor"
+          jq -n \
+            --arg name "${IMAGE_REPOSITORY}" \
+            --arg tag "${IMAGE_TAG}" \
+            --arg policy "${SNYK_POLICY_PATH}" \
+            '[{name: $name, tag: $tag, policy: $policy}] | map(if .policy == "" then del(.policy) else . end)' \
+            > "${RUNNER_TEMP}/snyk-monitor/images.json"
+
+          ARTIFACT_SUFFIX="$(printf '%s:%s' "${IMAGE_NAME}" "${IMAGE_TAG}" | sha256sum | cut -c1-16)"
+          echo "artifact_name=image-manifest-${GITHUB_RUN_ID}-${ARTIFACT_SUFFIX}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload image manifest
+        if: ${{ inputs.push_images && inputs.upload_image_manifest && fromJSON(inputs.build_targets)[1] == null }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.snyk_monitor_manifest.outputs.artifact_name }}
+          path: ${{ runner.temp }}/snyk-monitor/images.json
+          if-no-files-found: error
+
       - name: Upload Single-Arch image build Cache
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -485,3 +524,36 @@ jobs:
             ${BUILD_TARGET_OPTION} \
             ${BUILD_OPTIONS} \
             "${BUILD_PATH}"
+# If snyk container monitoring is enabled, create and upload the image manifest
+      - name: Create image manifest
+        if: ${{ inputs.upload_image_manifest }}
+        id: snyk_monitor_manifest
+        env:
+          IMAGE_NAME: ${{ inputs.image_name }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          SNYK_POLICY_PATH: ${{ inputs.snyk_policy_path }}
+        run: |
+          if [[ "${IMAGE_NAME}" == *.amazonaws.com/* ]]; then
+            IMAGE_REPOSITORY="${IMAGE_NAME#*/}"
+          else
+            IMAGE_REPOSITORY="${IMAGE_NAME}"
+          fi
+
+          mkdir -p "${RUNNER_TEMP}/snyk-monitor"
+          jq -n \
+            --arg name "${IMAGE_REPOSITORY}" \
+            --arg tag "${IMAGE_TAG}" \
+            --arg policy "${SNYK_POLICY_PATH}" \
+            '[{name: $name, tag: $tag, policy: $policy}] | map(if .policy == "" then del(.policy) else . end)' \
+            > "${RUNNER_TEMP}/snyk-monitor/images.json"
+
+          ARTIFACT_SUFFIX="$(printf '%s:%s' "${IMAGE_NAME}" "${IMAGE_TAG}" | sha256sum | cut -c1-16)"
+          echo "artifact_name=image-manifest-${GITHUB_RUN_ID}-${ARTIFACT_SUFFIX}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload image manifest
+        if: ${{ inputs.upload_image_manifest }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.snyk_monitor_manifest.outputs.artifact_name }}
+          path: ${{ runner.temp }}/snyk-monitor/images.json
+          if-no-files-found: error

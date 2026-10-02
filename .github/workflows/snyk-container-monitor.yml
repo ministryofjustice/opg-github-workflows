@@ -9,8 +9,9 @@ on:
     inputs:
       images:
         type: string
-        description: "JSON list of images to monitor. Each needs a registry-relative name and tag; policy is optional."
-        required: true
+        description: "Optional JSON list of extra images to monitor. Built images opted into Snyk monitoring are discovered from workflow artifacts."
+        default: "[]"
+        required: false
       oidc_role_to_assume:
         type: string
         description: "OIDC role used to pull monitored images and the Snyk CLI image from ECR"
@@ -69,6 +70,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Download built image manifests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: image-manifest-${{ github.run_id }}-*
+          path: ${{ runner.temp }}/snyk-monitor-artifacts
+          merge-multiple: false
+          if-no-artifact-found: ignore
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
@@ -94,13 +103,21 @@ jobs:
           IMAGES: ${{ inputs.images }}
           DEPLOYMENT_ENVIRONMENT: ${{ inputs.deployment_environment }}
           REPOSITORY: ${{ github.repository }}
+          MONITOR_ARTIFACTS_PATH: ${{ runner.temp }}/snyk-monitor-artifacts
         run: |
           ECR_REGISTRY="${ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
 
+          ARTIFACT_IMAGES="$(find "${MONITOR_ARTIFACTS_PATH}" -type f -name images.json -print0 | xargs -0 -r jq -s 'add // []')"
+          ARTIFACT_IMAGES="${ARTIFACT_IMAGES:-[]}"
+          IMAGES="$(jq -cn \
+            --argjson explicit "${IMAGES}" \
+            --argjson built "${ARTIFACT_IMAGES}" \
+            'reduce ($explicit + $built)[] as $image ([]; if any(.[]; .name == $image.name and .tag == $image.tag) then . else . + [$image] end)')"
+
           if [ "$(jq 'length' <<< "${IMAGES}")" -eq 0 ]; then
-            echo "No images provided for Snyk monitoring" >&2
+            echo "No images to monitor. Pass images or enable Snyk monitoring on pushed image builds." >&2
             exit 1
           fi
 
