@@ -46,7 +46,7 @@ on:
         required: false
       deployment_environment:
         type: string
-        description: "Deployment environment used to monitor specific target images in Snyk UI"
+        description: "Deployment environment used in Snyk project and target references"
         required: true
     secrets:
       SNYK_TOKEN:
@@ -117,7 +117,8 @@ jobs:
               fi
 
               image_ref="${ECR_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-              snyk_ref="${REPOSITORY}:${IMAGE_NAME//\//-}"
+              environment_tag="${DEPLOYMENT_ENVIRONMENT//[^a-zA-Z0-9_.-]/-}"
+              snyk_ref="${REPOSITORY}:${IMAGE_NAME//\//-}-${environment_tag}-monitor"
 
               docker pull "${image_ref}"
               docker tag "${image_ref}" "${snyk_ref}"
