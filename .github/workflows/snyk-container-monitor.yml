@@ -7,11 +7,6 @@ defaults:
 on:
   workflow_call:
     inputs:
-      images:
-        type: string
-        description: "Optional JSON list of extra images to monitor. Built images opted into Snyk monitoring are discovered from workflow artifacts."
-        default: "[]"
-        required: false
       oidc_role_to_assume:
         type: string
         description: "OIDC role used to pull monitored images and the Snyk CLI image from ECR"
@@ -75,8 +70,6 @@ jobs:
         with:
           pattern: image-manifest-${{ github.run_id }}-*
           path: ${{ runner.temp }}/snyk-monitor-artifacts
-          merge-multiple: false
-          if-no-artifact-found: ignore
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -100,57 +93,55 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_IMAGE: ${{ inputs.snyk_image }}
           SNYK_ORG: ${{ inputs.snyk_org }}
-          IMAGES: ${{ inputs.images }}
           DEPLOYMENT_ENVIRONMENT: ${{ inputs.deployment_environment }}
           REPOSITORY: ${{ github.repository }}
           MONITOR_ARTIFACTS_PATH: ${{ runner.temp }}/snyk-monitor-artifacts
         run: |
           ECR_REGISTRY="${ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          docker pull "${SNYK_REGISTRY}/${SNYK_IMAGE}"
 
-          ARTIFACT_IMAGES="$(find "${MONITOR_ARTIFACTS_PATH}" -type f -name images.json -print0 | xargs -0 -r jq -s 'add // []')"
-          ARTIFACT_IMAGES="${ARTIFACT_IMAGES:-[]}"
-          IMAGES="$(jq -cn \
-            --argjson explicit "${IMAGES}" \
-            --argjson built "${ARTIFACT_IMAGES}" \
-            'reduce ($explicit + $built)[] as $image ([]; if any(.[]; .name == $image.name and .tag == $image.tag) then . else . + [$image] end)')"
-
-          if [ "$(jq 'length' <<< "${IMAGES}")" -eq 0 ]; then
-            echo "No images to monitor. Pass images or enable Snyk monitoring on pushed image builds." >&2
-            exit 1
-          fi
-
-          while IFS= read -r image; do
-            IMAGE_NAME="$(jq -r '.name' <<< "${image}")"
-            IMAGE_TAG="$(jq -r '.tag' <<< "${image}")"
-            POLICY_PATH="$(jq -r '.policy // empty' <<< "${image}")"
-            image_ref="${ECR_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-
-            if [ -z "${IMAGE_NAME}" ] || [ -z "${IMAGE_TAG}" ]; then
-              echo "Each monitored image must include name and tag" >&2
+          for manifest in "${MONITOR_ARTIFACTS_PATH}"/*/images.json; do
+            if [ ! -f "${manifest}" ]; then
+              echo "::error::No image manifest found. Enable push_images and upload_image_manifest in the build workflow."
               exit 1
             fi
 
-            echo "Monitoring ${image_ref}"
-            docker pull "${image_ref}"
+            images="$(jq -c '.[]' "${manifest}")"
+            while IFS= read -r image; do
+              IMAGE_NAME="$(jq -r '.name // empty' <<< "${image}")"
+              IMAGE_TAG="$(jq -r '.tag // empty' <<< "${image}")"
+              POLICY_PATH="$(jq -r '.policy // empty' <<< "${image}")"
+              if [ -z "${IMAGE_NAME}" ] || [ -z "${IMAGE_TAG}" ]; then
+                echo "::error::Each image must have a name and tag."
+                exit 1
+              fi
 
-            extra_args=()
-            if [ -n "${SNYK_ORG}" ]; then
-              extra_args+=("--org=${SNYK_ORG}")
-            fi
-            if [ -n "${POLICY_PATH}" ]; then
-              extra_args+=("--policy-path=/project/${POLICY_PATH}")
-            fi
+              image_ref="${ECR_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+              snyk_ref="${REPOSITORY}:${IMAGE_NAME//\//-}"
 
-            docker run --rm \
-              --env SNYK_TOKEN \
-              --volume /var/run/docker.sock:/var/run/docker.sock \
-              --volume "${GITHUB_WORKSPACE}:/project:ro" \
-              "${SNYK_REGISTRY}/${SNYK_IMAGE}" \
-              container monitor "${image_ref}" \
-              --project-name="${IMAGE_NAME}" \
-              --target-reference="${DEPLOYMENT_ENVIRONMENT}" \
-              --project-tags="repository=${REPOSITORY},service=${IMAGE_NAME//\//-}" \
-              "${extra_args[@]}"
-          done < <(jq -c '.[]' <<< "${IMAGES}")
+              docker pull "${image_ref}"
+              docker tag "${image_ref}" "${snyk_ref}"
+              echo "Monitoring ${snyk_ref}"
+
+              extra_args=()
+              if [ -n "${SNYK_ORG}" ]; then
+                extra_args+=("--org=${SNYK_ORG}")
+              fi
+              if [ -n "${POLICY_PATH}" ] && [ -f "${GITHUB_WORKSPACE}/${POLICY_PATH}" ]; then
+                extra_args+=("--policy-path=/project/${POLICY_PATH}")
+              elif [ -f "${GITHUB_WORKSPACE}/.github/.snyk" ]; then
+                extra_args+=("--policy-path=/project/.github/.snyk")
+              fi
+
+              docker run --rm \
+                --env SNYK_TOKEN \
+                --volume /var/run/docker.sock:/var/run/docker.sock \
+                --volume "${GITHUB_WORKSPACE}:/project:ro" \
+                "${SNYK_REGISTRY}/${SNYK_IMAGE}" \
+                container monitor "${snyk_ref}" \
+                --project-name="${REPOSITORY}/${IMAGE_NAME//\//-}" \
+                --target-reference="${DEPLOYMENT_ENVIRONMENT}" \
+                --project-tags="repository=${REPOSITORY},service=${IMAGE_NAME//\//-}" \
+                "${extra_args[@]}"
+            done <<< "${images}"
+          done
