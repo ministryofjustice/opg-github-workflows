@@ -57,7 +57,8 @@ permissions:
   id-token: write
 
 jobs:
-  snyk_monitor:
+  # Monitor pushed images pulled from ECR through the Snyk container monitor job.
+  snyk_container_monitor:
     name: "Snyk Container Monitor"
     runs-on: ubuntu-latest
     steps:
@@ -102,7 +103,7 @@ jobs:
 
           for manifest in "${MONITOR_ARTIFACTS_PATH}"/*/images.json; do
             if [ ! -f "${manifest}" ]; then
-              echo "::error::No image manifest found. Enable push_images and upload_image_manifest in the build workflow."
+              echo "::error::No image manifest found. Upload image-manifest-${GITHUB_RUN_ID}-* artifacts from the calling workflow."
               exit 1
             fi
 
