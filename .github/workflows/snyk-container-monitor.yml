@@ -101,12 +101,17 @@ jobs:
           ECR_REGISTRY="${ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           SNYK_REGISTRY="${SNYK_ECR_REGISTRY_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-          for manifest in "${MONITOR_ARTIFACTS_PATH}"/*/images.json; do
-            if [ ! -f "${manifest}" ]; then
-              echo "::error::No image manifest found. Upload image-manifest-${GITHUB_RUN_ID}-* artifacts from the calling workflow."
-              exit 1
-            fi
+          shopt -s nullglob
+          manifests=("${MONITOR_ARTIFACTS_PATH}"/*/images.json)
+          if [ -f "${MONITOR_ARTIFACTS_PATH}/images.json" ]; then
+            manifests+=("${MONITOR_ARTIFACTS_PATH}/images.json")
+          fi
+          if [ "${#manifests[@]}" -eq 0 ]; then
+            echo "::error::No image manifest found. Upload image-manifest-${GITHUB_RUN_ID}-* artifacts from the calling workflow."
+            exit 1
+          fi
 
+          for manifest in "${manifests[@]}"; do
             images="$(jq -c '.[]' "${manifest}")"
             while IFS= read -r image; do
               IMAGE_NAME="$(jq -r '.name // empty' <<< "${image}")"
