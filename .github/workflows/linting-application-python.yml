@@ -7,7 +7,7 @@ on:
       python_version:
         type: string
         description: "Version of python to use"
-        default: "3.10.5"
+        default: "3.14.9"
         required: false
       directory:
         type: string
