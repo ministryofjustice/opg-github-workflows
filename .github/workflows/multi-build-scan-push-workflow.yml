@@ -147,7 +147,7 @@ on:
       snyk_image:
         type: string
         description: "Snyk image reference"
-        default: "shared/snyk:main-cli-1.1303.2-v0.3.0"
+        default: "shared/snyk:main-cli-1.1308.3-v0.3.2"
         required: false
 
       snyk_policy_path:
