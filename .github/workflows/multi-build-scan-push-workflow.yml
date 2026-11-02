@@ -239,9 +239,13 @@ jobs:
 
       - name: Load Snyk Image
         if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_image
         env:
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
           SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
-        run: docker load --input "${SNYK_CACHE_PATH}"
+        run: |
+          docker load --input "${SNYK_CACHE_PATH}"
+          echo "tag=${SNYK_IMAGE##*:}" >> "${GITHUB_OUTPUT}"
 
       # Build the native image and save the cache.
       - name: Build single image and export Cache
@@ -301,10 +305,11 @@ jobs:
       - name: Scan built image with Snyk
         if: ${{ inputs.enable_snyk_scanning }}
         id: snyk_scan
-        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@ae37b9b322286123971417e82b665e56e9d6aa3f # v4.10.3
+        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@e8b6e80d440613671b8d6f87b5e52a5363cc974a # v5.0.0
         with:
           SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ matrix.tag }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          snyk_image_tag: ${{ steps.snyk_image.outputs.tag }}
           snyk_policy_path: ${{ steps.snyk_policy.outputs.path }}
           snyk_test_args: ${{ inputs.snyk_container_options }}
           sarif_filepath: ${{ inputs.snyk_sarif_directory }}
