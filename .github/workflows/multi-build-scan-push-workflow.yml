@@ -358,6 +358,30 @@ jobs:
           category: "snyk-${{ matrix.tag }}-2"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
 
+# snyk sbom
+      - name: Generate Snyk SBOM
+        if: ${{ inputs.enable_snyk_scanning }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_IMAGE: ${{ inputs.snyk_ecr_registry_id }}.dkr.ecr.${{ inputs.aws_region }}.amazonaws.com/${{ inputs.snyk_image }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
+          SBOM_PATH: ${{ inputs.artifact_directory }}/sbom-${{ matrix.tag }}.cdx.json
+        run: |
+          mkdir -p "$(dirname "${SBOM_PATH}")" "${HOME}/.snyk-cache"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${GITHUB_WORKSPACE}:/app" -v "${HOME}/.snyk-cache:/tmp/.snyk-cache" \
+            -e SNYK_TOKEN -e SNYK_CACHE_PATH=/tmp/.snyk-cache \
+            --entrypoint snyk "${SNYK_IMAGE}" \
+            container sbom --format=cyclonedx1.6+json "${IMAGE_REF}" > "${SBOM_PATH}"
+
+      - name: Upload Snyk SBOM
+        if: ${{ inputs.enable_snyk_scanning }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-${{ inputs.artifact_name }}-${{ matrix.tag }}
+          path: ${{ inputs.artifact_directory }}/sbom-${{ matrix.tag }}.cdx.json
+          if-no-files-found: error
+
     # A single-entry matrix publishes the native image directly.
     # With multiple entries, single image direct publishing is skipped and the consolidation job publishes the multi-architecture image.
       - name: Configure AWS Credentials (Push Role)
