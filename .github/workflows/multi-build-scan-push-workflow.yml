@@ -239,9 +239,13 @@ jobs:
 
       - name: Load Snyk Image
         if: ${{ inputs.enable_snyk_scanning }}
+        id: snyk_image
         env:
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
           SNYK_CACHE_PATH: ${{ inputs.artifact_directory }}/snyk-cache/snyk.tar
-        run: docker load --input "${SNYK_CACHE_PATH}"
+        run: |
+          docker load --input "${SNYK_CACHE_PATH}"
+          echo "tag=${SNYK_IMAGE##*:}" >> "${GITHUB_OUTPUT}"
 
       # Build the native image and save the cache.
       - name: Build single image and export Cache
@@ -301,10 +305,11 @@ jobs:
       - name: Scan built image with Snyk
         if: ${{ inputs.enable_snyk_scanning }}
         id: snyk_scan
-        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@12bdbe54f92af873347bc0cd6f4e7769265c1a90 # v4.10.5
+        uses: ministryofjustice/opg-github-actions/actions/snyk-scan@e8b6e80d440613671b8d6f87b5e52a5363cc974a # v5.0.0
         with:
           SNYK_TEST_IMAGE: ${{ inputs.image_name }}:${{ matrix.tag }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          snyk_image_tag: ${{ steps.snyk_image.outputs.tag }}
           snyk_policy_path: ${{ steps.snyk_policy.outputs.path }}
           snyk_test_args: ${{ inputs.snyk_container_options }}
           sarif_filepath: ${{ inputs.snyk_sarif_directory }}
@@ -357,6 +362,30 @@ jobs:
         with:
           category: "snyk-${{ matrix.tag }}-2"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
+
+# snyk sbom
+      - name: Generate Snyk SBOM
+        if: ${{ inputs.enable_snyk_scanning }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_IMAGE: ${{ inputs.snyk_ecr_registry_id }}.dkr.ecr.${{ inputs.aws_region }}.amazonaws.com/${{ inputs.snyk_image }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ matrix.tag }}
+          SBOM_PATH: ${{ inputs.artifact_directory }}/sbom-${{ matrix.tag }}.cdx.json
+        run: |
+          mkdir -p "$(dirname "${SBOM_PATH}")" "${HOME}/.snyk-cache"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${GITHUB_WORKSPACE}:/app" -v "${HOME}/.snyk-cache:/tmp/.snyk-cache" \
+            -e SNYK_TOKEN -e SNYK_CACHE_PATH=/tmp/.snyk-cache \
+            --entrypoint snyk "${SNYK_IMAGE}" \
+            container sbom --format=cyclonedx1.6+json "${IMAGE_REF}" > "${SBOM_PATH}"
+
+      - name: Upload Snyk SBOM
+        if: ${{ inputs.enable_snyk_scanning }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-${{ inputs.artifact_name }}-${{ matrix.tag }}
+          path: ${{ inputs.artifact_directory }}/sbom-${{ matrix.tag }}.cdx.json
+          if-no-files-found: error
 
     # A single-entry matrix publishes the native image directly.
     # With multiple entries, single image direct publishing is skipped and the consolidation job publishes the multi-architecture image.
