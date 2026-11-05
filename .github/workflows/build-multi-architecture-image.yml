@@ -40,6 +40,20 @@ on:
         description: "Name of build image job for checking status against"
         default: "Build Multi Architecture Image"
         required: false
+      enable_snyk_sbom:
+        type: boolean
+        description: "Generate and upload a Snyk SBOM for final image"
+        default: false
+        required: false
+      snyk_image:
+        type: string
+        description: "Snyk CLI container image used to generate the SBOM"
+        default: "snyk/snyk:docker"
+        required: false
+
+    secrets:
+      SNYK_TOKEN:
+        required: false
 
 defaults:
   run:
@@ -109,6 +123,29 @@ jobs:
             ${{ inputs.build_options }} \
             ${{ inputs.build_path }}
           docker save -o ${{ inputs.artifact_directory }}/${{ inputs.artifact_name }}.tar ${{ inputs.image_name }}:${{ inputs.image_tag }}
+
+      - name: Generate Snyk SBOM
+        if: ${{ inputs.enable_snyk_sbom }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_IMAGE: ${{ inputs.snyk_image }}
+          IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+          SBOM_PATH: ${{ inputs.artifact_directory }}/sbom-${{ inputs.image_tag }}.cdx.json
+        run: |
+          mkdir -p "$(dirname "${SBOM_PATH}")" "${HOME}/.snyk-cache"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${GITHUB_WORKSPACE}:/app" -v "${HOME}/.snyk-cache:/tmp/.snyk-cache" \
+            -e SNYK_TOKEN -e SNYK_CACHE_PATH=/tmp/.snyk-cache \
+            --entrypoint snyk "${SNYK_IMAGE}" \
+            container sbom --format=cyclonedx1.6+json "${IMAGE_REF}" > "${SBOM_PATH}"
+
+      - name: Upload Snyk SBOM
+        if: ${{ inputs.enable_snyk_sbom }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-${{ inputs.artifact_name }}-${{ inputs.image_tag }}
+          path: ${{ inputs.artifact_directory }}/sbom-${{ inputs.image_tag }}.cdx.json
+          if-no-files-found: error
 
       - name: Archive image
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
