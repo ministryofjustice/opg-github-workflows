@@ -1,6 +1,5 @@
 # Using the Multi Architecture Build Workflow
 
-
 ## Calling the Workflow
 
 Only the `image_name` input is required when calling the workflow. The rest of the inputs can be found in the [workflow](../../.github/workflows/build-multi-architecture-image.yml).
@@ -17,7 +16,12 @@ build:
       image_name: example-image-name
       build_options: --build-arg EXAMPLE=true --file docker/Dockerfile
       cli_commands: make example
+      enable_snyk_sbom: true
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 ```
+
+Set `enable_snyk_sbom` to `true` and provide `SNYK_TOKEN` to generate and upload a CycloneDX SBOM for the final multi-architecture image. SBOM generation is disabled by default.
 
 ### Note:
 
