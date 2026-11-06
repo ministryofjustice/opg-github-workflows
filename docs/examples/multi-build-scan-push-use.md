@@ -68,6 +68,7 @@ build_and_push:
     oidc_role_to_assume_push: ${{ vars.OIDC_ECR_PUSH_ROLE }}
     build_options: --file docker/Dockerfile
     enable_snyk_scanning: true
+    enable_snyk_monitor: true
     snyk_policy_path: ./.snyk
     snyk_container_options: --severity-threshold=high
   secrets:
@@ -108,6 +109,8 @@ For this workflow:
 - **Multi-Architecture consolidation job** (only runs when `build_targets` has >1 entries and `push_images: true`):
   - Format: `<caller_job_name> / Multi-architecture build`
   - Example: `Build, Scan and Push Multi-Arch Image / Multi-architecture build`
+- **Snyk Container Monitor job** (runs only when `enable_snyk_monitor: true` and `push_images: true`):
+  - Format: `<caller_job_name> / Snyk Container Monitor`
 
 ## Key Inputs and Secrets
 
@@ -134,6 +137,7 @@ For this workflow:
 | `cli_commands`              | `""`                                                                          | Commands to execute prior to building (e.g. `make build`)                  |
 | `push_images`               | `true`                                                                        | Whether to push built images to ECR                                        |
 | `enable_snyk_scanning`      | `true`                                                                        | Whether to run Snyk container scans                                        |
+| `enable_snyk_monitor`       | `false`                                                                       | Whether to monitor the final pushed image in Snyk                          |
 | `snyk_policy_path`          | `./.snyk`                                                                     | Path to `.snyk` policy file with ignore rules/patches                      |
 | `snyk_container_options`    | `""`                                                                          | Extra arguments passed to Snyk CLI test command                            |
 | `aws_region`                | `eu-west-1`                                                                   | AWS region where ECR is hosted                                             |
