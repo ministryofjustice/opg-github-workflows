@@ -148,7 +148,7 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: ${{ inputs.terraform_wrapper }}
 
-      - uses: ministryofjustice/opg-github-actions/actions/github-deploy-key@ae37b9b322286123971417e82b665e56e9d6aa3f # v4.10.3
+      - uses: ministryofjustice/opg-github-actions/actions/github-deploy-key@12bdbe54f92af873347bc0cd6f4e7769265c1a90 # v4.10.5
         if: inputs.use_ssh_private_key == true
         with:
           deploy_key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -187,7 +187,7 @@ jobs:
       - id: register_workspace
         if: inputs.is_ephemeral == true
         name: Register ephemeral workspace
-        uses: ministryofjustice/opg-github-actions/actions/terraform-workspace-manager@ae37b9b322286123971417e82b665e56e9d6aa3f # v4.10.3
+        uses: ministryofjustice/opg-github-actions/actions/terraform-workspace-manager@12bdbe54f92af873347bc0cd6f4e7769265c1a90 # v4.10.5
         with:
           aws_account_id: ${{ inputs.workspace_manager_aws_account_id }}
           aws_iam_role: ${{ inputs.workspace_manager_aws_iam_role }}
@@ -206,7 +206,7 @@ jobs:
         working-directory: ${{ inputs.terraform_directory }}
 
       - name: Persist Terraform Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: inputs.persist_artifacts == true
         with:
           name: terraform-artifact
