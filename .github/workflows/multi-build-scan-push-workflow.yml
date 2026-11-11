@@ -426,16 +426,30 @@ jobs:
           IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
           PLATFORM_IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}-${PLATFORM_ARCH}"
 
-          docker buildx build \
-            --platform "${{ matrix.platform }}" \
-            --tag "${IMAGE_REF}" \
-            --tag "${PLATFORM_IMAGE_REF}" \
-            --cache-from type=local,src="${CACHE_DIRECTORY}" \
-            --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
-            --push \
-            ${BUILD_TARGET_OPTION} \
-            ${BUILD_OPTIONS} \
-            "${BUILD_PATH}"
+          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+            docker buildx build \
+              --platform "${{ matrix.platform }}" \
+              --tag "${IMAGE_REF}" \
+              --tag "${PLATFORM_IMAGE_REF}" \
+              --tag "${IMAGE_NAME}:latest" \
+              --cache-from type=local,src="${CACHE_DIRECTORY}" \
+              --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
+              --push \
+              ${BUILD_TARGET_OPTION} \
+              ${BUILD_OPTIONS} \
+              "${BUILD_PATH}"
+          else
+            docker buildx build \
+              --platform "${{ matrix.platform }}" \
+              --tag "${IMAGE_REF}" \
+              --tag "${PLATFORM_IMAGE_REF}" \
+              --cache-from type=local,src="${CACHE_DIRECTORY}" \
+              --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
+              --push \
+              ${BUILD_TARGET_OPTION} \
+              ${BUILD_OPTIONS} \
+              "${BUILD_PATH}"
+          fi
 
       - name: Upload Single-Arch image build Cache
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
@@ -490,6 +504,7 @@ jobs:
           BUILD_TARGET: ${{ inputs.build_target }}
           BUILD_TARGETS: ${{ inputs.build_targets }}
           ECR_CACHE_REF: ${{ inputs.image_name }}:${{ inputs.build_cache_tag }}
+          IMAGE_NAME: ${{ inputs.image_name }}
           IMAGE_REF: ${{ inputs.image_name }}:${{ inputs.image_tag }}
         run: |
           ${{ inputs.cli_commands }}
@@ -505,12 +520,25 @@ jobs:
 
           echo "Consolidating ${IMAGE_REF} for ${PLATFORMS}"
           # Consume every native cache, then publish the image index and shared ECR cache together.
-          docker buildx build \
-            --platform "${PLATFORMS}" \
-            --tag "${IMAGE_REF}" \
-            --push \
-            ${CACHE_OPTIONS} \
-            --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
-            ${BUILD_TARGET_OPTION} \
-            ${BUILD_OPTIONS} \
-            "${BUILD_PATH}"
+          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+            docker buildx build \
+              --platform "${PLATFORMS}" \
+              --tag "${IMAGE_REF}" \
+              --tag "${IMAGE_NAME}:latest" \
+              --push \
+              ${CACHE_OPTIONS} \
+              --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
+              ${BUILD_TARGET_OPTION} \
+              ${BUILD_OPTIONS} \
+              "${BUILD_PATH}"
+          else
+            docker buildx build \
+              --platform "${PLATFORMS}" \
+              --tag "${IMAGE_REF}" \
+              --push \
+              ${CACHE_OPTIONS} \
+              --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
+              ${BUILD_TARGET_OPTION} \
+              ${BUILD_OPTIONS} \
+              "${BUILD_PATH}"
+            fi
