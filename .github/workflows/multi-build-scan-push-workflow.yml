@@ -431,7 +431,7 @@ jobs:
               --platform "${{ matrix.platform }}" \
               --tag "${IMAGE_REF}" \
               --tag "${PLATFORM_IMAGE_REF}" \
-              --tag "${IMAGE_NAME}:latest \
+              --tag "${IMAGE_NAME}:latest" \
               --cache-from type=local,src="${CACHE_DIRECTORY}" \
               --cache-to type=registry,ref="${ECR_CACHE_REF}",mode=max \
               --push \
