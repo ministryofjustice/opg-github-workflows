@@ -426,7 +426,7 @@ jobs:
           IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
           PLATFORM_IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}-${PLATFORM_ARCH}"
 
-          if [[ ${{ github.ref }} != 'refs/heads/main' ]]; then
+          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
             docker buildx build \
               --platform "${{ matrix.platform }}" \
               --tag "${IMAGE_REF}" \
