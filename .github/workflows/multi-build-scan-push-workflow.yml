@@ -205,7 +205,7 @@ jobs:
           role-to-assume: ${{ inputs.oidc_role_to_assume_build }}
 
       - name: Login to ECR (Build Role)
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        uses: aws-actions/amazon-ecr-login@7290e214a610b32bc0eef81748948b6d466a8783 # v2.2.0
 
       # On a cache miss, this job pulls and saves the image so later builds can restore it directly.
       - name: Restore Snyk Image Cache
@@ -219,7 +219,7 @@ jobs:
   # Login to ECR for the Snyk image if the cache restore failed.
       - name: Login to Snyk ECR
         if: ${{ inputs.enable_snyk_scanning && steps.snyk_cache.outputs.cache-hit != 'true' && inputs.snyk_ecr_registry_id != '' }}
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        uses: aws-actions/amazon-ecr-login@7290e214a610b32bc0eef81748948b6d466a8783 # v2.2.0
         with:
           registries: ${{ inputs.snyk_ecr_registry_id }}
 
@@ -344,21 +344,21 @@ jobs:
 
       - name: Upload Snyk SARIF
         if: ${{ steps.sarif_check.outputs.split == 'false' }}
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           category: "snyk-${{ matrix.tag }}"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}.sarif"
 
       - name: Upload Snyk SARIF part 1
         if: ${{ steps.sarif_check.outputs.split == 'true' }}
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           category: "snyk-${{ matrix.tag }}-1"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_01.sarif"
 
       - name: Upload Snyk SARIF part 2
         if: ${{ steps.sarif_check.outputs.split == 'true' && hashFiles(format('{0}/snyk-{1}_part_02.sarif', inputs.snyk_sarif_directory, matrix.tag)) != '' }}
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
         with:
           category: "snyk-${{ matrix.tag }}-2"
           sarif_file: "${{ inputs.snyk_sarif_directory }}/snyk-${{ matrix.tag }}_part_02.sarif"
@@ -381,7 +381,7 @@ jobs:
 
       - name: Upload Snyk SBOM
         if: ${{ inputs.enable_snyk_scanning }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom-${{ inputs.artifact_name }}-${{ matrix.tag }}
           path: ${{ inputs.artifact_directory }}/sbom-${{ matrix.tag }}.cdx.json
@@ -402,7 +402,7 @@ jobs:
       # Login to ECR using the push role credentials before pushing any images.
       - name: Login to ECR (Push Role)
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] == null }}
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        uses: aws-actions/amazon-ecr-login@7290e214a610b32bc0eef81748948b6d466a8783 # v2.2.0
 
       # Build and push the single-architecture image.
       - name: Push Single-Architecture Image and ECR Cache
@@ -453,7 +453,7 @@ jobs:
 
       - name: Upload Single-Arch image build Cache
         if: ${{ inputs.push_images && fromJSON(inputs.build_targets)[1] != null }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cache-${{ inputs.artifact_name }}-${{ matrix.tag }}
           path: ${{ inputs.artifact_directory }}/buildx-cache/${{ inputs.artifact_name }}-${{ matrix.tag }}
@@ -477,7 +477,7 @@ jobs:
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
       - name: Download Native Build Caches
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: ${{ inputs.artifact_directory }}/cache
           pattern: cache-${{ inputs.artifact_name }}-*
@@ -493,7 +493,7 @@ jobs:
           role-to-assume: ${{ inputs.oidc_role_to_assume_push }}
 
       - name: Login to ECR (Push Role)
-        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        uses: aws-actions/amazon-ecr-login@7290e214a610b32bc0eef81748948b6d466a8783 # v2.2.0
 
       - name: Push Multi-Architecture Image and ECR Cache
         env:
